@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+storage/*
+!storage/.gitkeep
+.env
+.env.local
+.env.*.local
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+next-env.d.ts
+storage-test
+.next-e2e
+storage-e2e
+.next-demo

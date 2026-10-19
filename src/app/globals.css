@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * APEX design tokens. Colours are RGB triplets so Tailwind can apply opacity.
+ * Palette: academic navy, slate blue, muted copper; warm neutral canvas.
+ */
+:root {
+  --navy: 22 38 68;
+  --navy-700: 35 56 94;
+  --navy-50: 236 240 247;
+  --slateblue: 74 94 128;
+  --copper: 166 98 52;
+  --copper-50: 249 241 234;
+  --canvas: 249 248 245;
+  --surface: 255 255 255;
+  --ink: 28 31 36;
+  --ink-muted: 88 96 108;
+  --ink-faint: 128 135 146;
+  --line: 227 225 220;
+  --line-strong: 205 202 196;
+  --ok: 30 104 62;
+  --ok-50: 233 244 237;
+  --warn: 150 96 10;
+  --warn-50: 252 244 226;
+  --crit: 170 38 38;
+  --crit-50: 251 236 235;
+  --info: 36 82 150;
+  --info-50: 234 241 251;
+  --idle: 110 116 126;
+  --idle-50: 241 241 242;
+  --focus: 36 82 150;
+  color-scheme: light;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas font-body text-[15px] leading-relaxed text-ink antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-sans text-ink;
+    letter-spacing: -0.011em;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--focus));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  a {
+    @apply text-navy-700 underline-offset-2;
+  }
+  ::selection {
+    background: rgb(var(--navy-50));
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  .type-display {
+    @apply font-serif text-[1.75rem] font-semibold leading-tight tracking-tight text-navy md:text-[2rem];
+  }
+  .type-title {
+    @apply font-serif text-[1.375rem] font-semibold leading-snug text-navy;
+  }
+  .type-section {
+    @apply font-sans text-[0.9375rem] font-semibold text-ink;
+  }
+  .type-eyebrow {
+    @apply font-sans text-2xs font-semibold uppercase tracking-[0.08em] text-ink-faint;
+  }
+  .type-meta {
+    @apply font-sans text-[0.8125rem] text-ink-muted;
+  }
+  .type-figure {
+    @apply font-sans text-[1.5rem] font-semibold leading-none tracking-tight text-ink;
+    font-variant-numeric: tabular-nums;
+  }
+  .prose-lesson {
+    @apply max-w-[68ch] font-body text-[1.0625rem] leading-[1.7] text-ink;
+  }
+  .prose-lesson h2 {
+    @apply mb-2 mt-8 font-serif text-[1.25rem] font-semibold text-navy first:mt-0;
+  }
+  .prose-lesson h3 {
+    @apply mb-1 mt-6 font-sans text-base font-semibold;
+  }
+  .prose-lesson p {
+    @apply my-3;
+  }
+  .prose-lesson ul {
+    @apply my-3 list-disc space-y-1.5 pl-6;
+  }
+  .prose-lesson ol {
+    @apply my-3 list-decimal space-y-1.5 pl-6;
+  }
+  .prose-lesson strong {
+    @apply font-semibold text-ink;
+  }
+  .input-base {
+    @apply block w-full rounded border border-line-strong bg-surface px-3 py-2 font-sans text-sm text-ink placeholder:text-ink-faint
+      focus:border-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-700/20 disabled:bg-idle-50 disabled:text-ink-muted;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  .print-plain { border: none !important; box-shadow: none !important; }
+}

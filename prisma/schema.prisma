@@ -1,0 +1,1707 @@
+// APEX Learning & Development — relational data model
+// Conventions: tables are snake_case plural (@@map); columns are camelCase.
+// Historical records (assessment attempts, completions, certificates, approved CPD,
+// competency assessments) are append-only: they are superseded, never overwritten.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Identity & organisation ─────────────────────────────
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  DEACTIVATED
+}
+
+enum EmploymentStatus {
+  PERMANENT
+  CONTRACT
+  ON_LEAVE
+  SECONDED
+}
+
+model User {
+  id               String     @id @default(cuid())
+  email            String     @unique
+  name             String
+  passwordHash     String?
+  status           UserStatus @default(INVITED)
+  emailVerifiedAt  DateTime?
+  lastLoginAt      DateTime?
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  /// Demonstration accounts are flagged and must never be mixed with production records.
+  isDemo           Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  profile                UserProfile?
+  roles                  UserRole[]
+  sessions               Session[]
+  authTokens             AuthToken[]
+  managing               ManagerRelationship[]     @relation("manager")
+  managedBy              ManagerRelationship[]     @relation("employee")
+  enrollments            Enrollment[]
+  attempts               AssessmentAttempt[]       @relation("attemptUser")
+  gradedAttempts         AssessmentAttempt[]       @relation("attemptGrader")
+  completions            CourseCompletion[]
+  certificates           Certificate[]
+  credentials            Credential[]              @relation("credentialOwner")
+  verifiedCredentials    Credential[]              @relation("credentialVerifier")
+  activityEvents         LearningActivityEvent[]
+  instructing            CourseInstructor[]
+  webinarRegistrations   WebinarRegistration[]
+  webinarAttendance      WebinarAttendance[]       @relation("attendee")
+  attendanceRecorded     WebinarAttendance[]       @relation("attendanceRecorder")
+  webinarFeedback        WebinarFeedback[]
+  cpdActivities          CpdActivity[]
+  cpdClaims              CpdClaim[]                @relation("claimant")
+  cpdApprovals           CpdApproval[]
+  competencyAssessments  CompetencyAssessment[]    @relation("assessee")
+  assessedCompetencies   CompetencyAssessment[]    @relation("assessor")
+  competencyRequests     CompetencyReviewRequest[] @relation("requester")
+  competencyRequestsDone CompetencyReviewRequest[] @relation("requestReviewer")
+  developmentPlans       DevelopmentPlan[]         @relation("planOwner")
+  reviewingPlans         DevelopmentPlan[]         @relation("planReviewer")
+  developmentReviews     DevelopmentReview[]
+  developmentComments    DevelopmentComment[]
+  assignmentsReceived    LearningAssignment[]      @relation("assignee")
+  assignmentsGiven       LearningAssignment[]      @relation("assigner")
+  notifications          Notification[]
+  notificationPrefs      NotificationPreference[]
+  auditLogs              AuditLog[]
+  files                  StoredFile[]
+  submissions            AssignmentSubmission[]    @relation("submitter")
+  reviewedSubmissions    AssignmentSubmission[]    @relation("submissionReviewer")
+  pathEnrollments        LearningPathEnrollment[]
+  reports                Report[]
+  createdCourses         Course[]                  @relation("courseCreator")
+
+  @@index([status])
+  @@map("users")
+}
+
+model UserProfile {
+  id                String           @id @default(cuid())
+  userId            String           @unique
+  employeeNumber    String?          @unique
+  jobRoleId         String?
+  targetJobRoleId   String?
+  departmentId      String?
+  businessUnitId    String?
+  location          String?
+  hireDate          DateTime?
+  employmentStatus  EmploymentStatus @default(PERMANENT)
+  learningProgramme String?
+  cpdPolicyId       String?
+  phone             String?
+  bio               String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobRole       JobRole?      @relation("currentRole", fields: [jobRoleId], references: [id], onDelete: SetNull)
+  targetJobRole JobRole?      @relation("targetRole", fields: [targetJobRoleId], references: [id], onDelete: SetNull)
+  department    Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  businessUnit  BusinessUnit? @relation(fields: [businessUnitId], references: [id], onDelete: SetNull)
+  cpdPolicy     CpdPolicy?    @relation(fields: [cpdPolicyId], references: [id], onDelete: SetNull)
+
+  @@index([departmentId])
+  @@index([jobRoleId])
+  @@index([businessUnitId])
+  @@map("user_profiles")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String?
+  isSystem    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String
+  group       String
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  grantedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model BusinessUnit {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  name        String
+  createdAt   DateTime      @default(now())
+  departments Department[]
+  profiles    UserProfile[]
+
+  @@map("business_units")
+}
+
+model Department {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  name           String
+  businessUnitId String?
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  businessUnit   BusinessUnit?      @relation(fields: [businessUnitId], references: [id], onDelete: SetNull)
+  profiles       UserProfile[]
+  courses        CourseDepartment[]
+  jobRoles       JobRole[]
+
+  @@map("departments")
+}
+
+model JobRole {
+  id                 String                      @id @default(cuid())
+  code               String                      @unique
+  title              String
+  description        String?
+  careerTrack        String?
+  grade              Int?
+  departmentId       String?
+  minYearsExperience Int?
+  isActive           Boolean                     @default(true)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  department         Department?                 @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  currentHolders     UserProfile[]               @relation("currentRole")
+  aspirants          UserProfile[]               @relation("targetRole")
+  requirements       RoleCompetencyRequirement[]
+  pathwaysFrom       CareerPathway[]             @relation("fromRole")
+  pathwaysTo         CareerPathway[]             @relation("toRole")
+  learningPaths      LearningPath[]
+  plans              DevelopmentPlan[]
+
+  @@map("job_roles")
+}
+
+model CareerPathway {
+  id           String  @id @default(cuid())
+  fromRoleId   String
+  toRoleId     String
+  typicalYears Int?
+  notes        String?
+  fromRole     JobRole @relation("fromRole", fields: [fromRoleId], references: [id], onDelete: Cascade)
+  toRole       JobRole @relation("toRole", fields: [toRoleId], references: [id], onDelete: Cascade)
+
+  @@unique([fromRoleId, toRoleId])
+  @@map("career_pathways")
+}
+
+enum ManagerRelationshipType {
+  LINE
+  DOTTED
+}
+
+model ManagerRelationship {
+  id         String                  @id @default(cuid())
+  managerId  String
+  employeeId String
+  type       ManagerRelationshipType @default(LINE)
+  startDate  DateTime                @default(now())
+  endDate    DateTime?
+  manager    User                    @relation("manager", fields: [managerId], references: [id], onDelete: Cascade)
+  employee   User                    @relation("employee", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, employeeId, type])
+  @@index([employeeId])
+  @@map("manager_relationships")
+}
+
+// ───────────────────────────── Authentication ─────────────────────────────
+
+model Session {
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  ip         String?
+  userAgent  String?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+enum AuthTokenType {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  INVITATION
+}
+
+model AuthToken {
+  id        String        @id @default(cuid())
+  userId    String
+  type      AuthTokenType
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("auth_tokens")
+}
+
+model RateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+
+  @@map("rate_limit_buckets")
+}
+
+// ───────────────────────────── Files (private storage) ─────────────────────────────
+
+enum FilePurpose {
+  COURSE_MATERIAL
+  CPD_EVIDENCE
+  COMPETENCY_EVIDENCE
+  ASSIGNMENT_SUBMISSION
+  CREDENTIAL
+  BRANDING
+}
+
+model StoredFile {
+  id           String      @id @default(cuid())
+  storageKey   String      @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  purpose      FilePurpose
+  uploadedById String
+  createdAt    DateTime    @default(now())
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  lessonResources    LessonResource[]
+  cpdEvidence        CpdEvidence[]
+  competencyEvidence CompetencyEvidence[]
+  submissions        AssignmentSubmission[]
+  credentials        Credential[]
+  competencyRequests CompetencyReviewRequest[]
+
+  @@index([uploadedById])
+  @@map("stored_files")
+}
+
+// ───────────────────────────── Learning content ─────────────────────────────
+
+enum CourseStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Difficulty {
+  FOUNDATION
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum DeliveryMode {
+  SELF_PACED
+  INSTRUCTOR_LED
+  BLENDED
+  VIRTUAL_CLASSROOM
+}
+
+enum EnrolmentRule {
+  OPEN
+  APPROVAL_REQUIRED
+  ASSIGNED_ONLY
+}
+
+enum CpdUnit {
+  HOURS
+  POINTS
+}
+
+model CourseCategory {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  courses     Course[]
+  webinars    Webinar[]
+
+  @@map("course_categories")
+}
+
+model Course {
+  id                        String        @id @default(cuid())
+  code                      String        @unique
+  slug                      String        @unique
+  title                     String
+  categoryId                String
+  synopsis                  String
+  overview                  String
+  businessRelevance         String?
+  intendedAudience          String?
+  prerequisitesText         String?
+  objectives                String[]
+  outcomes                  String[]
+  keywords                  String[]
+  difficulty                Difficulty    @default(FOUNDATION)
+  deliveryMode              DeliveryMode  @default(SELF_PACED)
+  provider                  String        @default("Internal — Learning & Development")
+  estimatedHours            Decimal       @db.Decimal(6, 2)
+  cpdEligible               Boolean       @default(false)
+  cpdValue                  Decimal?      @db.Decimal(6, 2)
+  cpdUnit                   CpdUnit       @default(HOURS)
+  cpdAccreditationNote      String?
+  isMandatory               Boolean       @default(false)
+  enrolmentRule             EnrolmentRule @default(OPEN)
+  status                    CourseStatus  @default(DRAFT)
+  // Completion rules
+  requireAllLessons         Boolean       @default(true)
+  requireAssessmentPass     Boolean       @default(false)
+  requireAssignmentApproval Boolean       @default(false)
+  requireAcknowledgement    Boolean       @default(false)
+  acknowledgementText       String?
+  // Certification
+  certificateEnabled        Boolean       @default(true)
+  certificateValidityMonths Int?
+  recertificationNote       String?
+  publishedAt               DateTime?
+  archivedAt                DateTime?
+  createdById               String?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  category      CourseCategory       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy     User?                @relation("courseCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  modules       CourseModule[]
+  instructors   CourseInstructor[]
+  departments   CourseDepartment[]
+  competencies  CourseCompetency[]
+  prerequisites CoursePrerequisite[] @relation("course")
+  requiredFor   CoursePrerequisite[] @relation("prerequisite")
+  assessments   Assessment[]
+  enrollments   Enrollment[]
+  completions   CourseCompletion[]
+  certificates  Certificate[]
+  pathItems     LearningPathItem[]
+  assignments   LearningAssignment[]
+  devActions    DevelopmentAction[]
+
+  @@index([status, categoryId])
+  @@index([publishedAt])
+  @@map("courses")
+}
+
+model CourseDepartment {
+  courseId     String
+  departmentId String
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, departmentId])
+  @@map("course_departments")
+}
+
+model CourseInstructor {
+  courseId String
+  userId   String
+  isLead   Boolean @default(false)
+  course   Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, userId])
+  @@index([userId])
+  @@map("course_instructors")
+}
+
+model CoursePrerequisite {
+  courseId       String
+  prerequisiteId String
+  course         Course @relation("course", fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisite   Course @relation("prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, prerequisiteId])
+  @@map("course_prerequisites")
+}
+
+model CourseCompetency {
+  courseId     String
+  competencyId String
+  /// Proficiency level the course is designed to develop (knowledge level).
+  targetLevel  Int
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  competency   Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, competencyId])
+  @@index([competencyId])
+  @@map("course_competencies")
+}
+
+model CourseModule {
+  id          String   @id @default(cuid())
+  courseId    String
+  title       String
+  description String?
+  sortOrder   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+
+  @@index([courseId, sortOrder])
+  @@map("course_modules")
+}
+
+enum LessonType {
+  TEXT
+  VIDEO
+  PDF
+  DOCUMENT
+  EXTERNAL
+  ASSESSMENT
+  ASSIGNMENT
+}
+
+model Lesson {
+  id              String                 @id @default(cuid())
+  moduleId        String
+  title           String
+  type            LessonType             @default(TEXT)
+  sortOrder       Int
+  body            String?
+  videoUrl        String?
+  externalUrl     String?
+  durationMinutes Int?
+  isRequired      Boolean                @default(true)
+  assessmentId    String?                @unique
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  module          CourseModule           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  assessment      Assessment?            @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  resources       LessonResource[]
+  progress        LessonProgress[]
+  submissions     AssignmentSubmission[]
+
+  @@index([moduleId, sortOrder])
+  @@map("lessons")
+}
+
+model LessonResource {
+  id        String     @id @default(cuid())
+  lessonId  String
+  fileId    String
+  label     String
+  createdAt DateTime   @default(now())
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  file      StoredFile @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@index([lessonId])
+  @@map("lesson_resources")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+model Assessment {
+  id               String               @id @default(cuid())
+  courseId         String
+  title            String
+  description      String?
+  passingScore     Int                  @default(70)
+  maxAttempts      Int                  @default(3)
+  timeLimitMinutes Int?
+  /// Counts towards the course "assessment passed" completion rule.
+  isFinal          Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  course           Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions        AssessmentQuestion[]
+  attempts         AssessmentAttempt[]
+  lesson           Lesson?
+
+  @@index([courseId])
+  @@map("assessments")
+}
+
+model AssessmentQuestion {
+  id              String               @id @default(cuid())
+  assessmentId    String
+  sortOrder       Int
+  type            QuestionType
+  prompt          String
+  points          Int                  @default(1)
+  /// [{ "id": "a", "text": "..." }] for multiple choice
+  options         Json?
+  correctOptionId String?
+  correctBoolean  Boolean?
+  guidance        String?
+  assessment      Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  responses       AssessmentResponse[]
+
+  @@index([assessmentId, sortOrder])
+  @@map("assessment_questions")
+}
+
+// ───────────────────────────── Learning participation ─────────────────────────────
+
+enum EnrollmentStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  COMPLETED
+  WITHDRAWN
+  REJECTED
+}
+
+enum EnrollmentSource {
+  SELF
+  ASSIGNMENT
+  LEARNING_PATH
+  ADMIN
+}
+
+model Enrollment {
+  id               String                 @id @default(cuid())
+  userId           String
+  courseId         String
+  /// Recertification creates a new cycle; earlier cycles remain as history.
+  cycle            Int                    @default(1)
+  status           EnrollmentStatus       @default(ACTIVE)
+  source           EnrollmentSource       @default(SELF)
+  enrolledAt       DateTime               @default(now())
+  startedAt        DateTime?
+  lastAccessedAt   DateTime?
+  completedAt      DateTime?
+  dueDate          DateTime?
+  acknowledgedAt   DateTime?
+  timeSpentSeconds Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course           Course                 @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  lessonProgress   LessonProgress[]
+  attempts         AssessmentAttempt[]
+  completion       CourseCompletion?
+  submissions      AssignmentSubmission[]
+
+  @@unique([userId, courseId, cycle])
+  @@index([userId, courseId])
+  @@index([courseId, status])
+  @@index([userId, lastAccessedAt])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id                   String     @id @default(cuid())
+  enrollmentId         String
+  lessonId             String
+  startedAt            DateTime   @default(now())
+  completedAt          DateTime?
+  lastViewedAt         DateTime   @default(now())
+  timeSpentSeconds     Int        @default(0)
+  videoPositionSeconds Int?
+  enrollment           Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson               Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, lessonId])
+  @@index([lessonId])
+  @@map("lesson_progress")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  PENDING_REVIEW
+  GRADED
+}
+
+model AssessmentAttempt {
+  id            String               @id @default(cuid())
+  assessmentId  String
+  enrollmentId  String
+  userId        String
+  attemptNumber Int
+  status        AttemptStatus        @default(IN_PROGRESS)
+  startedAt     DateTime             @default(now())
+  submittedAt   DateTime?
+  gradedAt      DateTime?
+  gradedById    String?
+  score         Int?
+  maxScore      Int?
+  percent       Int?
+  passed        Boolean?
+  feedback      String?
+  assessment    Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  enrollment    Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  user          User                 @relation("attemptUser", fields: [userId], references: [id], onDelete: Cascade)
+  gradedBy      User?                @relation("attemptGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+  responses     AssessmentResponse[]
+
+  @@unique([enrollmentId, assessmentId, attemptNumber])
+  @@index([assessmentId, status])
+  @@index([userId])
+  @@map("assessment_attempts")
+}
+
+model AssessmentResponse {
+  id               String             @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  booleanAnswer    Boolean?
+  textAnswer       String?
+  isCorrect        Boolean?
+  pointsAwarded    Int?
+  feedback         String?
+  attempt          AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId])
+  @@map("assessment_responses")
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
+}
+
+model AssignmentSubmission {
+  id           String           @id @default(cuid())
+  lessonId     String
+  enrollmentId String
+  userId       String
+  body         String
+  fileId       String?
+  status       SubmissionStatus @default(SUBMITTED)
+  submittedAt  DateTime         @default(now())
+  reviewerId   String?
+  reviewedAt   DateTime?
+  feedback     String?
+  lesson       Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  user         User             @relation("submitter", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer     User?            @relation("submissionReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  file         StoredFile?      @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([lessonId, status])
+  @@index([enrollmentId])
+  @@map("assignment_submissions")
+}
+
+model CourseCompletion {
+  id           String       @id @default(cuid())
+  enrollmentId String       @unique
+  userId       String
+  courseId     String
+  completedAt  DateTime     @default(now())
+  finalPercent Int?
+  /// Snapshot of the completion rules that were satisfied (historical record).
+  ruleSnapshot Json
+  enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  certificate  Certificate?
+  cpdActivity  CpdActivity?
+
+  @@index([userId, completedAt])
+  @@index([courseId])
+  @@map("course_completions")
+}
+
+enum CertificateStatus {
+  VALID
+  REVOKED
+}
+
+model CertificateTemplate {
+  id             String        @id @default(cuid())
+  name           String
+  heading        String        @default("Certificate of Completion")
+  bodyText       String
+  signatoryName  String
+  signatoryTitle String
+  isDefault      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  certificates   Certificate[]
+
+  @@map("certificate_templates")
+}
+
+model Certificate {
+  id            String               @id @default(cuid())
+  serial        String               @unique
+  userId        String
+  courseId      String
+  completionId  String               @unique
+  templateId    String?
+  issuedAt      DateTime             @default(now())
+  expiresAt     DateTime?
+  status        CertificateStatus    @default(VALID)
+  revokedAt     DateTime?
+  revokedReason String?
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course               @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  completion    CourseCompletion     @relation(fields: [completionId], references: [id], onDelete: Restrict)
+  template      CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("certificates")
+}
+
+/// Externally issued qualifications and professional certifications.
+model Credential {
+  id           String      @id @default(cuid())
+  userId       String
+  name         String
+  issuer       String
+  credentialNo String?
+  issuedOn     DateTime
+  expiresOn    DateTime?
+  verifiedAt   DateTime?
+  verifiedById String?
+  fileId       String?
+  createdAt    DateTime    @default(now())
+  user         User        @relation("credentialOwner", fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy   User?       @relation("credentialVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  file         StoredFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("credentials")
+}
+
+enum ActivityType {
+  ENROLLED
+  LESSON_COMPLETED
+  ASSESSMENT_SUBMITTED
+  ASSESSMENT_PASSED
+  ASSESSMENT_FAILED
+  COURSE_COMPLETED
+  CERTIFICATE_ISSUED
+  WEBINAR_REGISTERED
+  WEBINAR_ATTENDED
+  CPD_SUBMITTED
+  CPD_APPROVED
+  CPD_REJECTED
+  COMPETENCY_ASSESSED
+  PLAN_REVIEWED
+  PATH_STARTED
+}
+
+model LearningActivityEvent {
+  id         String       @id @default(cuid())
+  userId     String
+  type       ActivityType
+  occurredAt DateTime     @default(now())
+  summary    String
+  refType    String?
+  refId      String?
+  metadata   Json?
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+  @@index([type, occurredAt])
+  @@map("learning_activity_events")
+}
+
+// ───────────────────────────── Learning paths ─────────────────────────────
+
+model LearningPath {
+  id                     String                   @id @default(cuid())
+  code                   String                   @unique
+  slug                   String                   @unique
+  title                  String
+  summary                String
+  targetAudience         String
+  entryRequirements      String?
+  completionCriteria     String
+  expectedHours          Decimal                  @db.Decimal(6, 2)
+  estimatedDurationWeeks Int?
+  cpdEligible            Boolean                  @default(false)
+  targetJobRoleId        String?
+  status                 CourseStatus             @default(DRAFT)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  targetJobRole          JobRole?                 @relation(fields: [targetJobRoleId], references: [id], onDelete: SetNull)
+  items                  LearningPathItem[]
+  competencies           LearningPathCompetency[]
+  enrollments            LearningPathEnrollment[]
+  assignments            LearningAssignment[]
+
+  @@map("learning_paths")
+}
+
+model LearningPathItem {
+  id                 String             @id @default(cuid())
+  pathId             String
+  courseId           String
+  sortOrder          Int
+  isRequired         Boolean            @default(true)
+  /// Another item in the same path that must be completed first.
+  prerequisiteItemId String?
+  note               String?
+  path               LearningPath       @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  course             Course             @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  prerequisiteItem   LearningPathItem?  @relation("itemPrereq", fields: [prerequisiteItemId], references: [id], onDelete: SetNull)
+  dependents         LearningPathItem[] @relation("itemPrereq")
+
+  @@unique([pathId, courseId])
+  @@index([pathId, sortOrder])
+  @@map("learning_path_items")
+}
+
+model LearningPathCompetency {
+  pathId       String
+  competencyId String
+  path         LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  competency   Competency   @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@id([pathId, competencyId])
+  @@map("learning_path_competencies")
+}
+
+model LearningPathEnrollment {
+  id          String       @id @default(cuid())
+  pathId      String
+  userId      String
+  startedAt   DateTime     @default(now())
+  completedAt DateTime?
+  path        LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pathId, userId])
+  @@map("learning_path_enrollments")
+}
+
+// ───────────────────────────── Webinars ─────────────────────────────
+
+enum WebinarStatus {
+  DRAFT
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum MeetingProvider {
+  NONE
+  MICROSOFT_TEAMS
+  ZOOM
+  OTHER
+}
+
+model Webinar {
+  id                       String                @id @default(cuid())
+  code                     String                @unique
+  slug                     String                @unique
+  title                    String
+  synopsis                 String
+  overview                 String
+  objectives               String[]
+  speakerName              String
+  speakerTitle             String?
+  speakerBio               String?
+  categoryId               String?
+  startsAt                 DateTime
+  durationMinutes          Int
+  timeZone                 String                @default("Asia/Baghdad")
+  capacity                 Int?
+  status                   WebinarStatus         @default(SCHEDULED)
+  cancellationReason       String?
+  registrationRequirements String?
+  minAttendanceMinutes     Int?
+  cpdEligible              Boolean               @default(false)
+  cpdValue                 Decimal?              @db.Decimal(6, 2)
+  cpdUnit                  CpdUnit               @default(HOURS)
+  meetingProvider          MeetingProvider       @default(NONE)
+  /// Visible only to registered attendees and webinar managers.
+  meetingUrl               String?
+  /// Reserved for a future Teams/Zoom integration (meeting identifier).
+  externalMeetingId        String?
+  agenda                   Json?
+  resources                Json?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  category                 CourseCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  registrations            WebinarRegistration[]
+  attendance               WebinarAttendance[]
+  recordings               WebinarRecording[]
+  feedback                 WebinarFeedback[]
+  devActions               DevelopmentAction[]
+
+  @@index([startsAt])
+  @@index([status])
+  @@map("webinars")
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  WAITLISTED
+  CANCELLED
+}
+
+model WebinarRegistration {
+  id           String             @id @default(cuid())
+  webinarId    String
+  userId       String
+  status       RegistrationStatus @default(REGISTERED)
+  registeredAt DateTime           @default(now())
+  cancelledAt  DateTime?
+  webinar      Webinar            @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendance   WebinarAttendance?
+
+  @@unique([webinarId, userId])
+  @@index([userId])
+  @@map("webinar_registrations")
+}
+
+enum AttendanceVerification {
+  INSTRUCTOR_CONFIRMED
+  PLATFORM_RECORD
+  ADMIN_PROCESS
+  UNVERIFIED
+}
+
+model WebinarAttendance {
+  id              String                 @id @default(cuid())
+  registrationId  String                 @unique
+  webinarId       String
+  userId          String
+  attended        Boolean
+  attendedMinutes Int?
+  verification    AttendanceVerification
+  recordedById    String
+  recordedAt      DateTime               @default(now())
+  notes           String?
+  cpdProcessedAt  DateTime?
+  registration    WebinarRegistration    @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  webinar         Webinar                @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user            User                   @relation("attendee", fields: [userId], references: [id], onDelete: Cascade)
+  recordedBy      User                   @relation("attendanceRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  cpdActivity     CpdActivity?
+
+  @@index([webinarId])
+  @@index([userId])
+  @@map("webinar_attendance")
+}
+
+model WebinarRecording {
+  id              String    @id @default(cuid())
+  webinarId       String
+  title           String
+  url             String
+  durationMinutes Int?
+  availableFrom   DateTime  @default(now())
+  availableUntil  DateTime?
+  createdAt       DateTime  @default(now())
+  webinar         Webinar   @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+
+  @@index([webinarId])
+  @@map("webinar_recordings")
+}
+
+model WebinarFeedback {
+  id        String   @id @default(cuid())
+  webinarId String
+  userId    String
+  rating    Int
+  relevance Int?
+  comments  String?
+  createdAt DateTime @default(now())
+  webinar   Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([webinarId, userId])
+  @@map("webinar_feedback")
+}
+
+// ───────────────────────────── CPD ─────────────────────────────
+
+model ReportingPeriod {
+  id        String            @id @default(cuid())
+  name      String            @unique
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  claims    CpdClaim[]
+  plans     DevelopmentPlan[]
+
+  @@map("reporting_periods")
+}
+
+enum CpdActivityType {
+  INTERNAL_COURSE
+  EXTERNAL_TRAINING
+  TECHNICAL_SEMINAR
+  WEBINAR
+  CONFERENCE
+  TECHNICAL_PRESENTATION
+  PUBLICATION
+  MENTORING
+  OTHER
+}
+
+enum CpdRecognition {
+  /// Recorded by the company only.
+  COMPANY_RECORDED
+  /// Intended for recognition by an external professional body.
+  PROFESSIONAL_BODY
+}
+
+model CpdPolicy {
+  id                          String            @id @default(cuid())
+  name                        String            @unique
+  description                 String?
+  professionalBody            String?
+  unit                        CpdUnit           @default(HOURS)
+  /// Annual target per reporting period. Null = record only, no target.
+  targetPerPeriod             Decimal?          @db.Decimal(6, 2)
+  /// Points awarded per hour where unit = POINTS.
+  pointsPerHour               Decimal?          @db.Decimal(6, 2)
+  /// Max value claimable for a single activity (null = no cap).
+  maxPerActivity              Decimal?          @db.Decimal(6, 2)
+  eligibleTypes               CpdActivityType[]
+  autoApproveVerifiedInternal Boolean           @default(false)
+  isActive                    Boolean           @default(true)
+  createdAt                   DateTime          @default(now())
+  updatedAt                   DateTime          @updatedAt
+  profiles                    UserProfile[]
+
+  @@map("cpd_policies")
+}
+
+model CpdActivity {
+  id                  String             @id @default(cuid())
+  userId              String
+  title               String
+  type                CpdActivityType
+  provider            String?
+  activityDate        DateTime
+  durationHours       Decimal            @db.Decimal(6, 2)
+  description         String?
+  learningOutcomes    String?
+  competencyId        String?
+  courseCompletionId  String?            @unique
+  webinarAttendanceId String?            @unique
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competency          Competency?        @relation(fields: [competencyId], references: [id], onDelete: SetNull)
+  webinarAttendance   WebinarAttendance? @relation(fields: [webinarAttendanceId], references: [id], onDelete: SetNull)
+  courseCompletion    CourseCompletion?  @relation(fields: [courseCompletionId], references: [id], onDelete: SetNull)
+  claims              CpdClaim[]
+
+  @@index([userId, activityDate])
+  @@map("cpd_activities")
+}
+
+enum CpdClaimStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model CpdClaim {
+  id              String           @id @default(cuid())
+  activityId      String
+  userId          String
+  periodId        String?
+  unit            CpdUnit          @default(HOURS)
+  claimedValue    Decimal          @db.Decimal(6, 2)
+  approvedValue   Decimal?         @db.Decimal(6, 2)
+  recognition     CpdRecognition   @default(COMPANY_RECORDED)
+  status          CpdClaimStatus   @default(DRAFT)
+  submittedAt     DateTime?
+  decidedAt       DateTime?
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  activity        CpdActivity      @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  user            User             @relation("claimant", fields: [userId], references: [id], onDelete: Cascade)
+  period          ReportingPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  evidence        CpdEvidence[]
+  approvals       CpdApproval[]
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("cpd_claims")
+}
+
+model CpdEvidence {
+  id          String      @id @default(cuid())
+  claimId     String
+  description String
+  fileId      String?
+  reference   String?
+  createdAt   DateTime    @default(now())
+  claim       CpdClaim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  file        StoredFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([claimId])
+  @@map("cpd_evidence")
+}
+
+/// Append-only history of CPD claim status transitions.
+model CpdApproval {
+  id         String         @id @default(cuid())
+  claimId    String
+  actorId    String
+  fromStatus CpdClaimStatus
+  toStatus   CpdClaimStatus
+  value      Decimal?       @db.Decimal(6, 2)
+  comment    String?
+  createdAt  DateTime       @default(now())
+  claim      CpdClaim       @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  actor      User           @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([claimId, createdAt])
+  @@map("cpd_approvals")
+}
+
+// ───────────────────────────── Competencies ─────────────────────────────
+
+enum FrameworkStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+model CompetencyFramework {
+  id                                String             @id @default(cuid())
+  name                              String             @unique
+  version                           String
+  description                       String?
+  status                            FrameworkStatus    @default(DRAFT)
+  /// When true, a completed linked course may be recorded as competency evidence at
+  /// the course's target level. Otherwise course completion is knowledge evidence only.
+  allowCourseCompletionAsCompetence Boolean            @default(false)
+  createdAt                         DateTime           @default(now())
+  updatedAt                         DateTime           @updatedAt
+  levels                            ProficiencyLevel[]
+  domains                           CompetencyDomain[]
+
+  @@map("competency_frameworks")
+}
+
+model ProficiencyLevel {
+  id          String              @id @default(cuid())
+  frameworkId String
+  level       Int
+  name        String
+  description String
+  framework   CompetencyFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+
+  @@unique([frameworkId, level])
+  @@map("proficiency_levels")
+}
+
+model CompetencyDomain {
+  id           String              @id @default(cuid())
+  frameworkId  String
+  name         String
+  description  String?
+  sortOrder    Int                 @default(0)
+  framework    CompetencyFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  competencies Competency[]
+
+  @@unique([frameworkId, name])
+  @@map("competency_domains")
+}
+
+model Competency {
+  id                   String                      @id @default(cuid())
+  domainId             String
+  code                 String                      @unique
+  name                 String
+  description          String
+  evidenceRequirements String?
+  assessmentCriteria   String?
+  reassessmentMonths   Int?
+  isActive             Boolean                     @default(true)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  domain               CompetencyDomain            @relation(fields: [domainId], references: [id], onDelete: Restrict)
+  roleRequirements     RoleCompetencyRequirement[]
+  assessments          CompetencyAssessment[]
+  courses              CourseCompetency[]
+  paths                LearningPathCompetency[]
+  cpdActivities        CpdActivity[]
+  reviewRequests       CompetencyReviewRequest[]
+  objectives           DevelopmentObjective[]
+
+  @@index([domainId])
+  @@map("competencies")
+}
+
+model RoleCompetencyRequirement {
+  id            String     @id @default(cuid())
+  jobRoleId     String
+  competencyId  String
+  requiredLevel Int
+  isCritical    Boolean    @default(false)
+  jobRole       JobRole    @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  competency    Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([jobRoleId, competencyId])
+  @@map("role_competency_requirements")
+}
+
+enum AssessmentMethod {
+  COURSE_COMPLETION
+  KNOWLEDGE_ASSESSMENT
+  PRACTICAL_DEMONSTRATION
+  SUPERVISOR_EVALUATION
+  WORKPLACE_OBSERVATION
+  VERIFIED_QUALIFICATION
+  FORMAL_ASSESSMENT
+}
+
+enum EvidenceBasis {
+  /// Knowledge acquisition (e.g. course completion, knowledge test).
+  KNOWLEDGE
+  /// Demonstrated operational competence (observation, practical, supervisor evaluation).
+  DEMONSTRATED
+}
+
+enum CompetencyAssessmentStatus {
+  CURRENT
+  SUPERSEDED
+  WITHDRAWN
+}
+
+model CompetencyAssessment {
+  id              String                        @id @default(cuid())
+  userId          String
+  competencyId    String
+  level           Int
+  method          AssessmentMethod
+  basis           EvidenceBasis
+  status          CompetencyAssessmentStatus    @default(CURRENT)
+  assessedAt      DateTime                      @default(now())
+  assessorId      String?
+  reassessmentDue DateTime?
+  notes           String?
+  createdAt       DateTime                      @default(now())
+  user            User                          @relation("assessee", fields: [userId], references: [id], onDelete: Cascade)
+  competency      Competency                    @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+  assessor        User?                         @relation("assessor", fields: [assessorId], references: [id], onDelete: SetNull)
+  evidence        CompetencyEvidence[]
+  history         CompetencyAssessmentHistory[]
+  reviewRequest   CompetencyReviewRequest?
+
+  @@index([userId, competencyId, status])
+  @@index([reassessmentDue])
+  @@map("competency_assessments")
+}
+
+model CompetencyEvidence {
+  id           String               @id @default(cuid())
+  assessmentId String
+  kind         AssessmentMethod
+  description  String
+  reference    String?
+  fileId       String?
+  createdAt    DateTime             @default(now())
+  assessment   CompetencyAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  file         StoredFile?          @relation(fields: [fileId], references: [id], onDelete: SetNull)
+
+  @@index([assessmentId])
+  @@map("competency_evidence")
+}
+
+model CompetencyAssessmentHistory {
+  id           String                      @id @default(cuid())
+  assessmentId String
+  action       String
+  fromStatus   CompetencyAssessmentStatus?
+  toStatus     CompetencyAssessmentStatus
+  actorId      String?
+  note         String?
+  createdAt    DateTime                    @default(now())
+  assessment   CompetencyAssessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([assessmentId])
+  @@map("competency_assessment_history")
+}
+
+enum ReviewRequestStatus {
+  PENDING
+  ASSESSED
+  DECLINED
+}
+
+/// Employee-initiated request for a competency assessment, with supporting evidence.
+model CompetencyReviewRequest {
+  id             String                @id @default(cuid())
+  userId         String
+  competencyId   String
+  requestedLevel Int
+  statement      String
+  fileId         String?
+  status         ReviewRequestStatus   @default(PENDING)
+  reviewerId     String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  assessmentId   String?               @unique
+  createdAt      DateTime              @default(now())
+  user           User                  @relation("requester", fields: [userId], references: [id], onDelete: Cascade)
+  competency     Competency            @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  reviewer       User?                 @relation("requestReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  file           StoredFile?           @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  assessment     CompetencyAssessment? @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@map("competency_review_requests")
+}
+
+// ───────────────────────────── Career development ─────────────────────────────
+
+enum PlanStatus {
+  DRAFT
+  EMPLOYEE_REVIEW
+  MANAGER_REVIEW
+  AGREED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ObjectiveStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  DEFERRED
+}
+
+enum LearningModel {
+  EXPERIENTIAL
+  SOCIAL
+  FORMAL
+}
+
+model DevelopmentPlan {
+  id               String                 @id @default(cuid())
+  userId           String
+  reviewerId       String?
+  periodId         String?
+  targetJobRoleId  String?
+  title            String
+  careerAspiration String?
+  status           PlanStatus             @default(DRAFT)
+  version          Int                    @default(1)
+  agreedAt         DateTime?
+  lastReviewedAt   DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  user             User                   @relation("planOwner", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer         User?                  @relation("planReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  period           ReportingPeriod?       @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  targetJobRole    JobRole?               @relation(fields: [targetJobRoleId], references: [id], onDelete: SetNull)
+  objectives       DevelopmentObjective[]
+  reviews          DevelopmentReview[]
+  comments         DevelopmentComment[]
+
+  @@index([userId, status])
+  @@map("development_plans")
+}
+
+model DevelopmentObjective {
+  id                   String               @id @default(cuid())
+  planId               String
+  goal                 String
+  currentCapability    String?
+  targetCapability     String?
+  competencyId         String?
+  competencyGap        String?
+  workplaceApplication String?
+  supportingEvidence   String?
+  responsible          String?
+  learningModel        LearningModel?
+  targetDate           DateTime?
+  reviewDate           DateTime?
+  status               ObjectiveStatus      @default(NOT_STARTED)
+  managerFeedback      String?
+  sortOrder            Int                  @default(0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  plan                 DevelopmentPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  competency           Competency?          @relation(fields: [competencyId], references: [id], onDelete: SetNull)
+  actions              DevelopmentAction[]
+  comments             DevelopmentComment[]
+
+  @@index([planId])
+  @@map("development_objectives")
+}
+
+enum DevelopmentActionType {
+  COURSE
+  WEBINAR
+  ON_THE_JOB
+  MENTORING
+  PROJECT
+  OTHER
+}
+
+model DevelopmentAction {
+  id          String                @id @default(cuid())
+  objectiveId String
+  title       String
+  type        DevelopmentActionType
+  courseId    String?
+  webinarId   String?
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime              @default(now())
+  objective   DevelopmentObjective  @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  course      Course?               @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  webinar     Webinar?              @relation(fields: [webinarId], references: [id], onDelete: SetNull)
+
+  @@index([objectiveId])
+  @@map("development_actions")
+}
+
+/// Append-only workflow history for a plan, with a snapshot at each transition.
+model DevelopmentReview {
+  id         String          @id @default(cuid())
+  planId     String
+  actorId    String
+  fromStatus PlanStatus
+  toStatus   PlanStatus
+  decision   String
+  comments   String?
+  snapshot   Json
+  version    Int
+  createdAt  DateTime        @default(now())
+  plan       DevelopmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  actor      User            @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([planId, createdAt])
+  @@map("development_reviews")
+}
+
+model DevelopmentComment {
+  id          String                @id @default(cuid())
+  planId      String
+  objectiveId String?
+  authorId    String
+  body        String
+  createdAt   DateTime              @default(now())
+  plan        DevelopmentPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  objective   DevelopmentObjective? @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  author      User                  @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([planId])
+  @@map("development_comments")
+}
+
+// ───────────────────────────── Management, notifications, audit ─────────────────────────────
+
+enum AssignmentKind {
+  REQUIRED
+  RECOMMENDED
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  COMPLETED
+  CANCELLED
+}
+
+model LearningAssignment {
+  id           String           @id @default(cuid())
+  userId       String
+  courseId     String?
+  pathId       String?
+  assignedById String
+  kind         AssignmentKind   @default(REQUIRED)
+  isMandatory  Boolean          @default(false)
+  reason       String?
+  dueDate      DateTime?
+  status       AssignmentStatus @default(ASSIGNED)
+  completedAt  DateTime?
+  batchId      String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User             @relation("assignee", fields: [userId], references: [id], onDelete: Cascade)
+  course       Course?          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  path         LearningPath?    @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  assignedBy   User             @relation("assigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([status, dueDate])
+  @@index([courseId])
+  @@map("learning_assignments")
+}
+
+enum NotificationType {
+  ASSIGNMENT_NEW
+  DEADLINE_APPROACHING
+  MANDATORY_OVERDUE
+  WEBINAR_REGISTERED
+  WEBINAR_UPCOMING
+  COURSE_COMPLETED
+  ASSESSMENT_RESULT
+  CERTIFICATE_ISSUED
+  CPD_DECISION
+  COMPETENCY_REVIEW
+  PLAN_REVIEW
+  ENROLMENT_DECISION
+  SYSTEM
+}
+
+enum DeliveryStatus {
+  NOT_REQUESTED
+  QUEUED
+  SENT
+  FAILED
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  body        String
+  link        String?
+  /// Prevents duplicate notifications for the same underlying event.
+  dedupeKey   String
+  readAt      DateTime?
+  emailStatus DeliveryStatus   @default(NOT_REQUESTED)
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  userId String
+  type   NotificationType
+  inApp  Boolean          @default(true)
+  email  Boolean          @default(false)
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, type])
+  @@map("notification_preferences")
+}
+
+model EmailOutbox {
+  id        String         @id @default(cuid())
+  toAddress String
+  subject   String
+  body      String
+  provider  String
+  status    DeliveryStatus @default(QUEUED)
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  @@index([status])
+  @@map("email_outbox")
+}
+
+model Report {
+  id            String   @id @default(cuid())
+  type          String
+  format        String
+  parameters    Json
+  rowCount      Int
+  generatedById String
+  createdAt     DateTime @default(now())
+  generatedBy   User     @relation(fields: [generatedById], references: [id], onDelete: Restrict)
+
+  @@index([generatedById])
+  @@map("reports")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_settings")
+}
+
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  status     String
+  detail     Json?
+
+  @@index([job, startedAt])
+  @@map("job_runs")
+}

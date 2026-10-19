@@ -1,0 +1,40 @@
+# Render Blueprint for the full application (server + PostgreSQL + private file disk).
+# In Render: New → Blueprint → select this repository; set rootDir if prompted.
+databases:
+  - name: apex-db
+    plan: basic-256mb
+    databaseName: apex_lms
+    user: apex
+
+services:
+  - type: web
+    name: apex-lms
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npx prisma generate && npm run build
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    disk:
+      name: apex-files
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: apex-db, property: connectionString }
+      - key: NODE_VERSION
+        value: "22"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: STORAGE_DRIVER
+        value: local
+      - key: STORAGE_LOCAL_DIR
+        value: /var/data/storage
+      - key: EMAIL_PROVIDER
+        value: outbox
+      - key: JOBS_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: DEMO_MODE
+        value: "false"

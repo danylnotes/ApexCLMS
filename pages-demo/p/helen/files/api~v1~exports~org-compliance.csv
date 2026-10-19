@@ -1,0 +1,36 @@
+﻿Employee,Department,Course,Due,Completed,Status
+Daniel Reyes,Refinery Operations,H₂S Awareness and Respiratory Protection,2024-09-09,2024-08-20,COMPLETED
+Ivan Horvat,Utilities & Energy,H₂S Awareness and Respiratory Protection,2025-07-02,2025-06-22,COMPLETED
+Ivan Horvat,Utilities & Energy,Permit to Work and Energy Isolation,2025-11-04,2025-10-25,COMPLETED
+Yusuf Kareem,Refinery Operations,Permit to Work and Energy Isolation,2025-12-12,2025-12-02,COMPLETED
+Peter Lindqvist,Maintenance & Reliability,Permit to Work and Energy Isolation,2026-01-05,2025-12-26,COMPLETED
+Fatima Alvi,Upstream Operations,Permit to Work and Energy Isolation,2026-01-09,2025-12-30,COMPLETED
+Ravi Iyer,Utilities & Energy,Permit to Work and Energy Isolation,2026-01-19,2026-01-09,COMPLETED
+Noura Aziz,Maintenance & Reliability,H₂S Awareness and Respiratory Protection,2026-02-17,2026-02-07,COMPLETED
+Zainab Musa,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-03-04,2026-02-22,COMPLETED
+Aisha Rahman,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-05-22,2026-04-22,COMPLETED
+Aisha Rahman,Refinery Operations,Permit to Work and Energy Isolation,2026-06-21,2026-06-01,COMPLETED
+Kwame Mensah,Refinery Operations,Permit to Work and Energy Isolation,2026-08-12,2026-08-02,COMPLETED
+Peter Lindqvist,Maintenance & Reliability,H₂S Awareness and Respiratory Protection,2026-08-30,2026-08-20,COMPLETED
+Samuel Osei,Process Safety & HSE,H₂S Awareness and Respiratory Protection,2026-09-24,,OVERDUE
+Noura Aziz,Maintenance & Reliability,Permit to Work and Energy Isolation,2026-09-24,,OVERDUE
+Aisha Rahman,Refinery Operations,Process Safety Management Fundamentals,2026-09-29,2026-08-20,COMPLETED
+Hassan Jaber,Upstream Operations,Permit to Work and Energy Isolation,2026-09-29,,OVERDUE
+Daniel Reyes,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-10-01,,OVERDUE
+Fatima Alvi,Upstream Operations,H₂S Awareness and Respiratory Protection,2026-10-02,2026-09-22,COMPLETED
+Sofia Marin,Refinery Operations,Permit to Work and Energy Isolation,2026-10-07,,OVERDUE
+Sofia Marin,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-10-10,,OVERDUE
+Daniel Reyes,Refinery Operations,Permit to Work and Energy Isolation,2026-10-10,,OVERDUE
+Samuel Osei,Process Safety & HSE,Permit to Work and Energy Isolation,2026-10-24,,DUE_SOON
+Marcus Bell,Maintenance & Reliability,H₂S Awareness and Respiratory Protection,2026-10-29,,DUE_SOON
+Ahmed Farouk,Refinery Operations,Permit to Work and Energy Isolation,2026-10-29,,DUE_SOON
+Lina Saleh,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-10-31,,DUE_SOON
+Ravi Iyer,Utilities & Energy,H₂S Awareness and Respiratory Protection,2026-11-01,,DUE_SOON
+Zainab Musa,Refinery Operations,Permit to Work and Energy Isolation,2026-11-07,,DUE_SOON
+Marcus Bell,Maintenance & Reliability,Permit to Work and Energy Isolation,2026-11-07,,DUE_SOON
+Yusuf Kareem,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-11-09,,DUE_SOON
+Hassan Jaber,Upstream Operations,H₂S Awareness and Respiratory Protection,2026-11-17,,DUE_SOON
+Kwame Mensah,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-11-26,,PENDING
+Lina Saleh,Refinery Operations,Permit to Work and Energy Isolation,2026-11-28,,PENDING
+Ahmed Farouk,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-12-12,,PENDING
+Lina Saleh,Refinery Operations,Process Safety Management Fundamentals,2026-12-28,,PENDING

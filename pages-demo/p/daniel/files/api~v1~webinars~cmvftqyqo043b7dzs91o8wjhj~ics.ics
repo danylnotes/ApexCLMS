@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//APEX Learning//Webinars//EN
+BEGIN:VEVENT
+UID:cmvftqyqo043b7dzs91o8wjhj@apex-learning
+DTSTAMP:20261019T224204Z
+DTSTART:20261019T220655Z
+DTEND:20261019T230655Z
+SUMMARY:Monthly HSE Stand-down: Hand and Finger Safety
+DESCRIPTION:Review of recent hand injuries across the industry and practical controls for line breaking and tool use.
+URL:http://localhost:3000/webinars/monthly-hse-stand-down-hand-and-finger-safety
+END:VEVENT
+END:VCALENDAR

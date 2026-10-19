@@ -1,0 +1,11 @@
+﻿Employee,Employee no.,Department,Role,Active enrolments,Completed (all time),Completed this year,Recorded learning hours,Mandatory items,Mandatory overdue
+Aisha Rahman,D-20104,Refinery Operations,Field Operator,1,3,3,13.3,3,0
+Daniel Reyes,D-20103,Refinery Operations,Senior Operator,2,3,1,12,3,2
+James Okafor,D-20102,Process Engineering,Senior Process Engineer,2,7,5,43.2,0,0
+Kwame Mensah,D-20109,Refinery Operations,Field Operator,2,2,2,7.4,2,0
+Lina Saleh,D-20101,Refinery Operations,Field Operator,1,0,0,0.5,3,0
+Priya Natarajan,D-20105,Maintenance & Reliability,Reliability Engineer,1,4,2,25,0,0
+Ravi Iyer,D-20110,Utilities & Energy,Utilities Operator,2,2,2,9.3,2,0
+Sofia Marin,D-20108,Refinery Operations,Field Operator,3,2,0,8.7,2,2
+Tomasz Nowak,D-20106,Refinery Operations,Operations Supervisor,0,3,1,14.5,0,0
+Yusuf Kareem,D-20107,Refinery Operations,Senior Operator,3,1,0,8.5,2,0
