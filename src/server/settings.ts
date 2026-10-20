@@ -40,8 +40,8 @@ export interface PlatformSettings {
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
   branding: {
-    productName: "APEX Learning & Development",
-    descriptor: "Developing Competence. Strengthening Performance. Advancing Careers.",
+    productName: "Apex CLMS",
+    descriptor: "Competency & Learning Management System — developing competence, strengthening performance, advancing careers.",
     organisationName: "Your Organisation",
     monogram: "A",
     supportEmail: "learning.support@example.com",

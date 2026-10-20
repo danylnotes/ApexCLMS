@@ -69,7 +69,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)_280px]">
         {/* Course navigation */}
         <nav aria-label="Course contents" className="lg:sticky lg:top-20 lg:self-start">
-          <details className="rounded-md border border-line bg-surface lg:open" open>
+          <details className="rounded-[22px] bg-surface lg:open" open>
             <summary className="cursor-pointer list-none border-b border-line px-4 py-3 font-sans text-sm font-semibold lg:cursor-default [&::-webkit-details-marker]:hidden">
               {course.title}
               {state && <span className="mt-2 block"><Progress value={enrollment!.status === "COMPLETED" ? 100 : state.percent} label="Course progress" size="sm" /></span>}
@@ -102,7 +102,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
         </nav>
 
         {/* Main content */}
-        <article className="min-w-0 rounded-md border border-line bg-surface px-5 py-6 sm:px-10 sm:py-8">
+        <article className="min-w-0 rounded-[22px] bg-surface px-5 py-6 sm:px-10 sm:py-8">
           <p className="type-eyebrow">{LESSON_TYPE[current.type]} · {fmtMinutes(current.durationMinutes)}{!current.isRequired && " · optional"}</p>
           <h1 className="type-display mt-1 !text-[1.625rem]">{current.title}</h1>
           <div className="mt-6">

@@ -1,5 +1,6 @@
 import type { PlanStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
+import { assertCanAccessCourse } from "./access";
 import { prisma } from "../db";
 import { forbidden, invalid, notFound } from "../errors";
 import type { Actor } from "../auth/session";
@@ -134,6 +135,7 @@ export async function addAction(actor: Actor, planId: string, raw: unknown) {
   const a = actionSchema.parse(raw);
   if (role !== "OWNER" || plan.status === "COMPLETED") throw forbidden();
   if (!plan.objectives.some((o) => o.id === a.objectiveId)) throw notFound("Objective");
+  if (a.courseId) await assertCanAccessCourse(actor.id, a.courseId);
   return prisma.developmentAction.create({ data: { objectiveId: a.objectiveId, title: a.title, type: a.type, courseId: a.courseId || null, webinarId: a.webinarId || null, dueDate: a.dueDate ?? null } });
 }
 

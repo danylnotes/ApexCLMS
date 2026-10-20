@@ -7,6 +7,7 @@ import { can, reportingScope } from "../policy";
 import { audit } from "../audit";
 import { notify } from "../notify";
 import { ensureAssignedEnrollment } from "./learning";
+import { canAccessCourse, canAccessPath } from "./access";
 
 export const assignSchema = z
   .object({
@@ -57,6 +58,18 @@ export async function assignLearning(actor: Actor, raw: unknown) {
   if (input.pathId && (!path || path.status !== "PUBLISHED")) throw invalid("Only published learning paths can be assigned.");
   const title = course?.title ?? path!.title;
 
+  // Content is limited by job title. Named people without access are an error the assigner must resolve
+  // (an administrator grants access first); audience-wide assignments simply leave them out.
+  const permitted = async (userId: string) => (course ? canAccessCourse(userId, course.id) : canAccessPath(userId, path!));
+  const allowed: string[] = [];
+  for (const userId of userIds) if (await permitted(userId)) allowed.push(userId);
+  const noAccess = userIds.length - allowed.length;
+  if (input.target === "USERS" && noAccess) {
+    const names = (await prisma.user.findMany({ where: { id: { in: userIds.filter((id) => !allowed.includes(id)) } }, select: { name: true } })).map((u) => u.name);
+    throw invalid(`${names.join(", ")} ${names.length > 1 ? "do" : "does"} not have access to content for this job title. An administrator must grant access first.`);
+  }
+  userIds = allowed;
+
   const batchId = randomUUID();
   let created = 0;
   let skipped = 0;
@@ -105,8 +118,8 @@ export async function assignLearning(actor: Actor, raw: unknown) {
     }
     created++;
   }
-  await audit(actor.id, input.isMandatory ? "assignment.mandatory.create" : "assignment.create", course ? "course" : "learning_path", course?.id ?? path!.id, { batchId, created, skipped, target: input.target });
-  return { created, skipped, batchId };
+  await audit(actor.id, input.isMandatory ? "assignment.mandatory.create" : "assignment.create", course ? "course" : "learning_path", course?.id ?? path!.id, { batchId, created, skipped, noAccess, target: input.target });
+  return { created, skipped, noAccess, batchId };
 }
 
 export async function cancelAssignment(actor: Actor, assignmentId: string) {

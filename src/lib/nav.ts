@@ -22,6 +22,7 @@ export const NAV: NavGroup[] = [
       { label: "Course Catalogue", href: "/catalogue", icon: "Library", match: "/courses" },
       { label: "Learning Paths", href: "/learning-paths", icon: "Route" },
       { label: "Webinars & Events", href: "/webinars", icon: "Presentation" },
+      { label: "Notifications", href: "/notifications", icon: "Bell" },
     ],
   },
   {

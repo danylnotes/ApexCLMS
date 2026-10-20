@@ -22,7 +22,7 @@ export default async function HelpPage() {
       <PageHeader eyebrow="Support" title="Help and Support" description="Answers to common questions about learning records, CPD, competencies and career development." />
       <div className="space-y-2">
         {FAQ.map(([q, a]) => (
-          <details key={q} className="rounded-md border border-line bg-surface px-5 py-3.5">
+          <details key={q} className="rounded-[22px] bg-surface px-5 py-3.5">
             <summary className="cursor-pointer font-sans text-sm font-semibold text-ink">{q}</summary>
             <p className="mt-2 text-[0.9375rem] text-ink-muted">{a}</p>
           </details>

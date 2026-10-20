@@ -2,7 +2,7 @@
   "name": "apex-learning-development",
   "version": "1.0.0",
   "private": true,
-  "description": "APEX Learning & Development — enterprise learning, competency and career development platform",
+  "description": "Apex CLMS — enterprise learning, competency and career development platform",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -12,11 +12,11 @@ function safeNext(n: string) {
 }
 
 export async function loginAction(_: ActionState, fd: FormData): Promise<ActionState> {
-  const email = str(fd, "email");
+  const staffId = str(fd, "staffId");
   const password = str(fd, "password");
-  if (!email || !password) return { ok: false, error: "Enter your email address and password." };
+  if (!staffId || !password) return { ok: false, error: "Enter your staff ID and password." };
   const meta = await requestMeta();
-  const r = await authenticate(email, password, meta.ip);
+  const r = await authenticate(staffId, password, meta.ip);
   if (!r.ok) return { ok: false, error: r.error, data: r.code ? { code: r.code } : undefined };
   const { token, expiresAt } = await createSession(r.userId, meta);
   await setSessionCookie(token, expiresAt);

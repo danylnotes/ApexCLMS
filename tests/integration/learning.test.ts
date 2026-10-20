@@ -5,7 +5,7 @@ import { actor, correctAnswers, course, freshEmployee, wrongAnswers } from "./he
 
 describe("enrolment", () => {
   it("is idempotent", async () => {
-    const me = await freshEmployee();
+    const me = await freshEmployee({ roleCode: "SPE" });
     const c = await course("HSE-110");
     const a = await learning.enrol(me, c.id);
     const b = await learning.enrol(me, c.id);
@@ -14,13 +14,13 @@ describe("enrolment", () => {
   });
 
   it("enforces prerequisites", async () => {
-    const me = await freshEmployee();
+    const me = await freshEmployee({ roleCode: "SPE" });
     const c = await course("OPX-210");
     await expect(learning.enrol(me, c.id)).rejects.toThrow(/prerequisite/i);
   });
 
   it("routes approval-required courses to the line manager", async () => {
-    const me = await freshEmployee({ managerEmail: "omar.haddad@apex-demo.test" });
+    const me = await freshEmployee({ roleCode: "SPE", managerEmail: "omar.haddad@apex-demo.test" });
     const c = await course("LSS-300");
     const e = await learning.enrol(me, c.id);
     expect(e.status).toBe("PENDING_APPROVAL");
@@ -34,7 +34,7 @@ describe("enrolment", () => {
   });
 
   it("does not expose content to learners who are not enrolled", async () => {
-    const me = await freshEmployee();
+    const me = await freshEmployee({ roleCode: "SPE" });
     const c = await course("PSM-101");
     await expect(learning.getPlayer(me, c.slug)).rejects.toThrow(/Enrol/);
     await expect(learning.completeLesson(me, c.modules[0].lessons[0].id)).rejects.toThrow(/Enrol/);
@@ -43,7 +43,7 @@ describe("enrolment", () => {
 
 describe("progress, assessment, completion and certification", () => {
   it("persists progress, scores attempts and completes the course exactly once", async () => {
-    const me = await freshEmployee({ policy: "Engineering Professional Registration" });
+    const me = await freshEmployee({ roleCode: "SPE", policy: "Engineering Professional Registration" });
     const c = await course("PSM-101");
     await learning.enrol(me, c.id);
     const lessons = c.modules.sort((a, b) => a.sortOrder - b.sortOrder).flatMap((m) => m.lessons.sort((a, b) => a.sortOrder - b.sortOrder));
@@ -96,7 +96,7 @@ describe("progress, assessment, completion and certification", () => {
   });
 
   it("enforces the maximum number of attempts", async () => {
-    const me = await freshEmployee();
+    const me = await freshEmployee({ roleCode: "SPE" });
     const c = await course("LSS-110");
     await learning.enrol(me, c.id);
     const id = c.assessments[0].id;

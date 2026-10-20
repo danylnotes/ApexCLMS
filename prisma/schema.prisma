@@ -1,4 +1,4 @@
-// APEX Learning & Development — relational data model
+// Apex CLMS — relational data model
 // Conventions: tables are snake_case plural (@@map); columns are camelCase.
 // Historical records (assessment attempts, completions, certificates, approved CPD,
 // competency assessments) are append-only: they are superseded, never overwritten.
@@ -81,6 +81,8 @@ model User {
   submissions            AssignmentSubmission[]    @relation("submitter")
   reviewedSubmissions    AssignmentSubmission[]    @relation("submissionReviewer")
   pathEnrollments        LearningPathEnrollment[]
+  accessGrants           ContentAccessGrant[]      @relation("grantee")
+  accessGrantsGiven      ContentAccessGrant[]      @relation("grantor")
   reports                Report[]
   createdCourses         Course[]                  @relation("courseCreator")
 
@@ -212,8 +214,28 @@ model JobRole {
   pathwaysTo         CareerPathway[]             @relation("toRole")
   learningPaths      LearningPath[]
   plans              DevelopmentPlan[]
+  courseAudiences    CourseAudience[]
+  accessGrants       ContentAccessGrant[]
 
   @@map("job_roles")
+}
+
+/// Job-title content access. A staff member sees course and learning-path content for the job
+/// titles they hold a grant for. Grants are decided by an administrator: promotion to a new
+/// job title does not open the next level's content until access is granted.
+model ContentAccessGrant {
+  id          String   @id @default(cuid())
+  userId      String
+  jobRoleId   String
+  grantedById String?
+  reason      String?
+  grantedAt   DateTime @default(now())
+  user        User     @relation("grantee", fields: [userId], references: [id], onDelete: Cascade)
+  jobRole     JobRole  @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  grantedBy   User?    @relation("grantor", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, jobRoleId])
+  @@map("content_access_grants")
 }
 
 model CareerPathway {
@@ -434,10 +456,23 @@ model Course {
   pathItems     LearningPathItem[]
   assignments   LearningAssignment[]
   devActions    DevelopmentAction[]
+  audiences     CourseAudience[]
 
   @@index([status, categoryId])
   @@index([publishedAt])
   @@map("courses")
+}
+
+/// Job titles a course is intended for. No rows = open to every job title.
+model CourseAudience {
+  courseId  String
+  jobRoleId String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  jobRole   JobRole @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, jobRoleId])
+  @@index([jobRoleId])
+  @@map("course_audiences")
 }
 
 model CourseDepartment {

@@ -5,6 +5,7 @@ import { requireActor } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { canManageCourse } from "@/server/policy";
 import { recertificationDue } from "@/server/services/learning";
+import { canAccessCourse } from "@/server/services/access";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { KeyValue, LinkButton, Notice, PageHeader, Panel, Progress, Status, Tag } from "@/components/ui";
 import { courseProgress } from "@/lib/domain/progress";
@@ -36,6 +37,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   });
   const manager = course ? await canManageCourse(actor, course.id) : false;
   if (!course || (course.status !== "PUBLISHED" && !manager)) notFound();
+  // Content intended for other job titles is not disclosed.
+  if (!manager && !(await canAccessCourse(actor.id, course.id))) notFound();
 
   const enrollment = await prisma.enrollment.findFirst({
     where: { userId: actor.id, courseId: course.id },

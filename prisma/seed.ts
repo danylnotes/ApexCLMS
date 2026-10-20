@@ -11,7 +11,7 @@ import path from "node:path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { ROLE_DEFAULTS, PERMISSIONS } from "../src/server/permissions";
 import { ALL_COURSES } from "./seed/courses";
-import { BUSINESS_UNITS, CATEGORIES, DEPARTMENTS, DOMAINS, JOB_ROLES, LEARNING_PATHS, LEVELS, PATHWAYS, PEOPLE } from "./seed/org";
+import { BUSINESS_UNITS, CATEGORIES, COURSE_AUDIENCES, DEPARTMENTS, DOMAINS, EARLIER_LEVELS, JOB_ROLES, LEARNING_PATHS, LEVELS, PATHWAYS, PEOPLE, PENDING_PROMOTION } from "./seed/org";
 
 const prisma = new PrismaClient();
 export const DEMO_PASSWORD = "Demo#Apex2026!";
@@ -48,7 +48,7 @@ async function makePdf(title: string, lines: string[]) {
   const serif = await doc.embedFont(StandardFonts.TimesRomanBold);
   const sans = await doc.embedFont(StandardFonts.Helvetica);
   page.drawRectangle({ x: 0, y: 792, width: 595, height: 50, color: rgb(0.09, 0.15, 0.27) });
-  page.drawText("APEX Learning & Development — Reference sheet (fictional demonstration content)", { x: 40, y: 812, size: 9, font: sans, color: rgb(1, 1, 1) });
+  page.drawText("Apex CLMS — Reference sheet (fictional demonstration content)", { x: 40, y: 812, size: 9, font: sans, color: rgb(1, 1, 1) });
   page.drawText(title, { x: 40, y: 740, size: 20, font: serif, color: rgb(0.09, 0.15, 0.27) });
   let y = 700;
   for (const l of lines) {
@@ -175,7 +175,7 @@ async function main() {
     users.set(p.email, u.id);
   }
   // A pending invitation (not yet activated) for the user administration screens
-  await prisma.user.create({ data: { email: "new.starter@apex-demo.test", name: "Jordan Ellis", status: "INVITED", isDemo: true, roles: { create: [{ roleId: roles.get("EMPLOYEE")! }] }, profile: { create: { jobRoleId: jobRoles.get("FO"), departmentId: depts.get("OPS"), businessUnitId: bus.get("DWN"), location: "Coastal Refinery Complex", employeeNumber: "D-20999" } } } });
+  await prisma.user.create({ data: { email: "new.starter@apex-demo.test", name: "Jordan Ellis", status: "INVITED", isDemo: true, roles: { create: [{ roleId: roles.get("EMPLOYEE")! }] }, profile: { create: { jobRoleId: jobRoles.get("FO"), departmentId: depts.get("OPS"), businessUnitId: bus.get("DWN"), location: "Coastal Refinery Complex", employeeNumber: "D-20999" } }, accessGrants: { create: { jobRoleId: jobRoles.get("FO")!, reason: "Starting job title" } } } });
   const U = (email: string) => users.get(email)!;
   for (const p of PEOPLE) if (p.manager) await prisma.managerRelationship.create({ data: { managerId: U(p.manager), employeeId: U(p.email), startDate: daysAgo(400) } });
   // Department heads without explicit managers report to the L&D view only (no relationship).
@@ -282,6 +282,19 @@ async function main() {
     courses.set(c.code, { id: course.id, lessons, assessmentId, questions, cpd: c.cpd?.value ?? null, validity: c.certValidityMonths ?? null, title: c.title, competencies: c.competencies });
   }
   for (const c of ALL_COURSES) for (const pre of c.prerequisites ?? []) await prisma.coursePrerequisite.create({ data: { courseId: courses.get(c.code)!.id, prerequisiteId: courses.get(pre)!.id } });
+
+  // ── Job-title content access
+  for (const [code, roleCodes] of Object.entries(COURSE_AUDIENCES)) {
+    await prisma.courseAudience.createMany({ data: roleCodes.map((r) => ({ courseId: courses.get(code)!.id, jobRoleId: jobRoles.get(r)! })) });
+  }
+  const accessAdmin = U("helen.mercer@apex-demo.test");
+  for (const p of PEOPLE) {
+    const levels = [p.role, ...(EARLIER_LEVELS[p.role] ?? [])];
+    await prisma.contentAccessGrant.createMany({ data: levels.map((r, i) => ({ userId: U(p.email), jobRoleId: jobRoles.get(r)!, grantedById: accessAdmin, reason: i === 0 ? "Current job title" : "Earlier level in career track", grantedAt: daysAgo(p.hiredMonthsAgo * 30 + 1) })) });
+  }
+  // Promoted by HR; the next level's content is waiting on an administrator's decision.
+  await prisma.userProfile.update({ where: { userId: U(PENDING_PROMOTION.email) }, data: { jobRoleId: jobRoles.get(PENDING_PROMOTION.to) } });
+  await prisma.auditLog.create({ data: { actorId: accessAdmin, action: "user.job_title.change", entityType: "user", entityId: U(PENDING_PROMOTION.email), metadata: { from: jobRoles.get(PENDING_PROMOTION.from)!, to: jobRoles.get(PENDING_PROMOTION.to)! }, createdAt: daysAgo(2) } });
 
   // ── Learning paths
   const paths = new Map<string, string>();

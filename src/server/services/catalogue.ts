@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { contentAccess, courseAudienceWhere } from "./access";
 
 export interface CatalogueQuery {
   q?: string;
@@ -32,7 +33,8 @@ const DURATION: Record<string, Prisma.DecimalFilter> = {
 export async function searchCatalogue(userId: string, query: CatalogueQuery) {
   const pageSize = query.pageSize ?? 12;
   const where: Prisma.CourseWhereInput = { status: "PUBLISHED" };
-  const and: Prisma.CourseWhereInput[] = [];
+  // Only content intended for the job titles this person has been granted.
+  const and: Prisma.CourseWhereInput[] = [courseAudienceWhere(await contentAccess(userId))];
   const q = query.q?.trim();
   if (q) {
     and.push({

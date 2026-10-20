@@ -5,6 +5,7 @@ Employee development records are treated as confidential.
 | Control | Implementation |
 | --- | --- |
 | Password storage | bcrypt (cost 12) via `bcryptjs`; 12+ character policy with mixed classes |
+| Sign-in and content access | Sign-in by staff ID (case-insensitive) and password; constant-shape errors and timing equalisation for unknown IDs; per-ID and per-IP rate limits; lockout. Content intended for other job titles is filtered server-side and answers "not found" (no probing); only `user.manage` can grant or revoke job-title access, every change is audited, and administrators cannot change their own access |
 | Sessions | Random 256-bit tokens; only SHA-256 hashes stored; HTTP-only, SameSite=Lax, `Secure` in production; absolute and idle expiry (configurable); revocation on sign-out, password change/reset and deactivation; users can sign out other sessions |
 | Brute force | PostgreSQL-backed rate limits on sign-in (per email and per IP), reset and verification requests; account lockout after configurable failures; uniform error messages and timing equalisation against account enumeration |
 | Authorisation | Permission checks in every service function (`server/policy.ts`); reporting scope for managers; pages use `requirePagePermission`; middleware is only a convenience pre-check |

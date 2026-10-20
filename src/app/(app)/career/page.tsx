@@ -24,7 +24,7 @@ export default async function CareerPage() {
       <section aria-labelledby="dims" className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
         <h2 id="dims" className="sr-only">Dimension summary</h2>
         {o.health.map((d) => (
-          <a key={d.key} href={`#dim-${d.key}`} className="rounded-md border border-line bg-surface px-4 py-3 no-underline hover:border-line-strong">
+          <a key={d.key} href={`#dim-${d.key}`} className="rounded-[22px] bg-surface px-4 py-3 no-underline hover:border-line-strong">
             <p className="font-sans text-[0.8125rem] font-medium text-ink">{d.title}</p>
             <div className="mt-2"><Status tone={HEALTH_TONE[d.status]}>{HEALTH_STATUS_LABEL[d.status]}</Status></div>
           </a>

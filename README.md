@@ -1,12 +1,19 @@
-# APEX Learning & Development
+# Apex CLMS
 
-*Developing Competence. Strengthening Performance. Advancing Careers.*
+*Competency & Learning Management System — developing competence, strengthening performance, advancing careers.*
 
-**Live read-only demo:** https://danylnotes.github.io/ApexCLMS/ — static snapshots of the app for eight fictional personas (employees, a line manager, an L&D administrator and an executive). Saving and approvals need the full app; see [docs/HOSTING.md](docs/HOSTING.md).
+**Live read-only demo:** https://danylnotes.github.io/ApexCLMS/ — sign in with a fictional staff ID to open static snapshots of the app for nine personas (employees, a newly promoted operator, a line manager, an L&D administrator and an executive). Saving and approvals need the full app; see [docs/HOSTING.md](docs/HOSTING.md).
 
 An enterprise learning, competency and career-development platform for an oil and gas organisation. It connects learning activity to demonstrable workplace competence, mandatory-training compliance, CPD and career progression — with role-based access enforced on the server and every record persisted in PostgreSQL.
 
 > The product name, organisation name, monogram and sign-in copy are configurable in **Administration → Configuration**. Nothing company-specific is hard-coded.
+
+## Staff ID sign-in and job-title access
+
+- Staff sign in with their **staff ID** and password. The staff ID resolves the person's record, and through it their **job title** (shown in the header and sidebar on every page).
+- Courses carry a **job-title audience**; courses without one are open to everyone (e.g. site-wide mandatory training). Learning paths aimed at a job title follow the same rule. Staff see, search, open and enrol only on content for the job titles they hold an **access grant** for — anything else answers "not found", in the UI and the API.
+- **Promotion does not open the next level automatically.** When HR changes someone's job title, the record notes it and the administrator decides when to grant the new level (*Administration → Users → person → Content access by job title*). The employee is notified when access is granted.
+- Learning records are never hidden: courses already enrolled on or assigned stay accessible. Assigning restricted content to someone without access is refused until an administrator grants it.
 
 ## What it does
 
@@ -39,17 +46,18 @@ npm run dev                       # http://localhost:3000
 
 All use the password `Demo#Apex2026!`. Every demo user is flagged `isDemo` and uses the reserved `.test` domain.
 
-| Persona | Email |
+| Persona | Staff ID |
 | --- | --- |
-| New employee (3 weeks) | lina.saleh@apex-demo.test |
-| Several completed courses / instructor | james.okafor@apex-demo.test |
-| Overdue mandatory training | daniel.reyes@apex-demo.test |
-| Progressing through a learning path | aisha.rahman@apex-demo.test |
-| Pending CPD claims | priya.natarajan@apex-demo.test |
-| Line manager (and instructor) | omar.haddad@apex-demo.test |
-| Instructor | graham.whitfield@apex-demo.test |
-| L&D administrator | helen.mercer@apex-demo.test |
-| Executive / HR leadership | catherine.lowe@apex-demo.test |
+| New employee (3 weeks), Field Operator | D-20101 |
+| Several completed courses / instructor | D-20102 |
+| Overdue mandatory training | D-20103 |
+| Progressing through a learning path | D-20104 |
+| Pending CPD claims | D-20105 |
+| Promoted to Senior Operator — next level awaiting admin | D-20109 |
+| Line manager (and instructor) | D-10003 |
+| Instructor | D-10004 |
+| L&D administrator | D-10001 |
+| Executive / HR leadership | D-10002 |
 
 ## Scripts
 

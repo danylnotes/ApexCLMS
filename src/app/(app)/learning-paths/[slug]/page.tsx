@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Circle, Lock } from "lucide-react";
 import { requireActor } from "@/server/auth/session";
 import { prisma } from "@/server/db";
+import { accessibleCourseIds, canAccessPath } from "@/server/services/access";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { KeyValue, LinkButton, PageHeader, Panel, Progress, Status, Tag } from "@/components/ui";
 import { ENROLLMENT } from "@/lib/status";
@@ -20,7 +21,8 @@ export default async function PathDetail({ params }: { params: Promise<{ slug: s
       targetJobRole: true,
     },
   });
-  if (!path || path.status !== "PUBLISHED") notFound();
+  if (!path || path.status !== "PUBLISHED" || !(await canAccessPath(actor.id, path))) notFound();
+  const openCourses = await accessibleCourseIds(actor.id, path.items.map((i) => i.courseId));
   const [completions, enrollments, pe] = await Promise.all([
     prisma.courseCompletion.findMany({ where: { userId: actor.id, courseId: { in: path.items.map((i) => i.courseId) } } }),
     prisma.enrollment.findMany({ where: { userId: actor.id, courseId: { in: path.items.map((i) => i.courseId) } }, orderBy: { cycle: "desc" } }),
@@ -57,7 +59,7 @@ export default async function PathDetail({ params }: { params: Promise<{ slug: s
                   <span className="mt-0.5">{isDone ? <CheckCircle2 className="h-5 w-5 text-ok" aria-label="Completed" /> : open ? <Circle className="h-5 w-5 text-line-strong" aria-label="Available" /> : <Lock className="h-5 w-5 text-ink-faint" aria-label="Locked" />}</span>
                   <div className="min-w-0 flex-1">
                     <p className="type-eyebrow">Step {n + 1} · {i.isRequired ? "Required" : "Optional enrichment"} · {i.course.category.name}</p>
-                    <Link href={`/courses/${i.course.slug}`} className="font-sans text-[0.9375rem] font-semibold">{i.course.title}</Link>
+                    {openCourses.has(i.courseId) ? <Link href={`/courses/${i.course.slug}`} className="font-sans text-[0.9375rem] font-semibold">{i.course.title}</Link> : <p className="font-sans text-[0.9375rem] font-semibold text-ink-muted">{i.course.title} <span className="font-normal type-meta">· restricted to another job title — your administrator decides access</span></p>}
                     <p className="type-meta">{fmtHours(i.course.estimatedHours.toString())}{i.course.assessments[0] ? ` · assessed: ${i.course.assessments[0].title}` : ""}{i.prerequisiteItem && ` · after ${i.prerequisiteItem.course.title}`}</p>
                   </div>
                   <div className="shrink-0">{isDone ? <Status tone="ok">Completed</Status> : e ? <Status tone={ENROLLMENT[e.status][1]}>{ENROLLMENT[e.status][0]}</Status> : next?.id === i.id ? <Status tone="info">Recommended next</Status> : null}</div>

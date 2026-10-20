@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePagePermission } from "@/server/auth/session";
 import { prisma } from "@/server/db";
+import { contentAccess, courseAudienceWhere } from "@/server/services/access";
 import { canManageEmployee, canViewEmployee } from "@/server/policy";
 import { employeeOverview } from "@/server/services/overview";
 import { getPlan } from "@/server/services/plans";
@@ -159,7 +160,7 @@ async function PlanTab({ userId, actorId }: { userId: string; actorId: string })
   const { plan: detail, role } = await getPlan(actor, plan.id);
   const [competencies, courses] = await Promise.all([
     prisma.competency.findMany({ where: { isActive: true }, orderBy: { code: "asc" }, select: { id: true, code: true, name: true } }),
-    prisma.course.findMany({ where: { status: "PUBLISHED" }, orderBy: { code: "asc" }, select: { id: true, code: true, title: true } }),
+    prisma.course.findMany({ where: { status: "PUBLISHED", ...courseAudienceWhere(await contentAccess(userId)) }, orderBy: { code: "asc" }, select: { id: true, code: true, title: true } }),
   ]);
   void actorId;
   return <PlanView plan={detail} role={role === "OWNER" ? "VIEWER" : role} competencies={competencies} courses={courses} />;

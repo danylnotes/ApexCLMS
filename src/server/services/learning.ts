@@ -14,6 +14,7 @@ import { attemptEligibility, isPass, percentOf, scoreAttempt } from "@/lib/domai
 import { addMonths } from "@/lib/domain/competency";
 import { claimableValue } from "@/lib/domain/cpd";
 import { currentPeriod } from "./periods";
+import { assertCanAccessCourse, assertCanAccessPath } from "./access";
 
 const SELF_COMPLETABLE = new Set(["TEXT", "VIDEO", "PDF", "DOCUMENT", "EXTERNAL"]);
 
@@ -26,6 +27,7 @@ export async function enrol(actor: Actor, courseId: string) {
     include: { prerequisites: { include: { prerequisite: { select: { id: true, title: true } } } } },
   });
   if (!course || course.status !== "PUBLISHED") throw notFound("Course");
+  await assertCanAccessCourse(actor.id, course.id);
 
   const existing = await latestEnrollment(actor.id, courseId);
   if (existing && (existing.status === "ACTIVE" || existing.status === "PENDING_APPROVAL")) return existing; // idempotent
@@ -618,6 +620,7 @@ async function updatePathCompletion(userId: string) {
 export async function startLearningPath(actor: Actor, pathId: string) {
   const path = await prisma.learningPath.findUnique({ where: { id: pathId } });
   if (!path || path.status !== "PUBLISHED") throw notFound("Learning path");
+  await assertCanAccessPath(actor.id, path);
   const pe = await prisma.learningPathEnrollment.upsert({ where: { pathId_userId: { pathId, userId: actor.id } }, create: { pathId, userId: actor.id }, update: {} });
   await recordActivity(actor.id, "PATH_STARTED", `Started learning path: ${path.title}`, { type: "learning_path", id: path.id });
   return pe;

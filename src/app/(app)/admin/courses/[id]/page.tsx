@@ -17,6 +17,7 @@ export const metadata = { title: "Edit course" };
 
 const editorInclude = {
   departments: true,
+  audiences: true,
   modules: { orderBy: { sortOrder: "asc" }, include: { lessons: { orderBy: { sortOrder: "asc" }, include: { resources: { include: { file: true } }, assessment: true } } } },
   assessments: { include: { questions: { orderBy: { sortOrder: "asc" }, include: { _count: { select: { responses: true } } } }, _count: { select: { attempts: true } } } },
   prerequisites: true,
@@ -73,7 +74,7 @@ export default async function CourseEditor({ params, searchParams }: { params: P
       )}
       <TabNav tabs={tabs} current={tab} />
 
-      {tab === "details" && <Panel><CourseDetailsForm course={course} departmentIds={course.departments.map((d) => d.departmentId)} /></Panel>}
+      {tab === "details" && <Panel><CourseDetailsForm course={course} departmentIds={course.departments.map((d) => d.departmentId)} audienceRoleIds={course.audiences.map((a) => a.jobRoleId)} canSetAudience={can(actor, "course.manage")} /></Panel>}
       {tab === "curriculum" && <Curriculum course={course} />}
       {tab === "assessments" && <Assessments course={course} />}
       {tab === "rules" && admin && <Rules course={course} />}

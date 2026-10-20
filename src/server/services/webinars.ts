@@ -206,7 +206,7 @@ export function webinarIcs(w: { id: string; title: string; synopsis: string; sta
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//APEX Learning//Webinars//EN",
+    "PRODID:-//Apex CLMS//Webinars//EN",
     "BEGIN:VEVENT",
     `UID:${w.id}@apex-learning`,
     `DTSTAMP:${fmt(new Date())}`,

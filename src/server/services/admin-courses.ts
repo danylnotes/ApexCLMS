@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { conflict, forbidden, invalid, notFound } from "../errors";
 import type { Actor } from "../auth/session";
-import { assertCan, assertCanManageCourse } from "../policy";
+import { assertCan, assertCanManageCourse, can } from "../policy";
+import { setCourseAudience } from "./access";
 import { audit } from "../audit";
 import { validateCompletionConfig } from "@/lib/domain/completion";
 
@@ -27,6 +28,8 @@ export const courseDetailsSchema = z.object({
   provider: z.string().trim().min(2).max(200),
   estimatedHours: z.coerce.number().positive().max(500),
   departmentIds: z.array(z.string()).default([]),
+  /** Job titles the course is intended for; empty means open to every job title. */
+  audienceRoleIds: z.array(z.string()).default([]),
 });
 
 export async function createCourse(actor: Actor, raw: unknown) {
@@ -40,6 +43,7 @@ export async function createCourse(actor: Actor, raw: unknown) {
       objectives: lines(i.objectives), outcomes: lines(i.outcomes), keywords: i.keywords.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean),
       difficulty: i.difficulty, deliveryMode: i.deliveryMode, provider: i.provider, estimatedHours: i.estimatedHours, status: "DRAFT", createdById: actor.id,
       departments: { create: i.departmentIds.map((departmentId) => ({ departmentId })) },
+      audiences: { create: i.audienceRoleIds.map((jobRoleId) => ({ jobRoleId })) },
     },
   });
   await audit(actor.id, "course.create", "course", c.id, { code: c.code });
@@ -63,6 +67,8 @@ export async function updateCourseDetails(actor: Actor, courseId: string, raw: u
     prisma.courseDepartment.deleteMany({ where: { courseId } }),
     prisma.courseDepartment.createMany({ data: i.departmentIds.map((departmentId) => ({ courseId, departmentId })) }),
   ]);
+  // Who may see the content is an administrator decision; instructors editing details leave it unchanged.
+  if (can(actor, "course.manage")) await setCourseAudience(actor, courseId, i.audienceRoleIds);
   await audit(actor.id, "course.update", "course", courseId);
 }
 

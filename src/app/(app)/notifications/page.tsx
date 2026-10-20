@@ -15,7 +15,7 @@ export default async function NotificationsPage() {
     <div className="max-w-3xl">
       <PageHeader eyebrow="Account" title="Notifications" description={`${unread} unread`} actions={<>{unread > 0 && <ActionForm action={markAllReadAction} inline><SubmitButton variant="secondary">Mark all as read</SubmitButton></ActionForm>}<LinkButton href="/profile#notifications" variant="ghost">Preferences</LinkButton></>} />
       {items.length === 0 ? <EmptyState title="No notifications" /> : (
-        <ul className="divide-y divide-line rounded-md border border-line bg-surface">
+        <ul className="divide-y divide-line rounded-[22px] bg-surface">
           {items.map((n) => (
             <li key={n.id}>
               <form action={openNotification}>

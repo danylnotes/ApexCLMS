@@ -27,7 +27,7 @@ export async function UserForm({ u }: { u?: NonNullable<Existing> }) {
       {u && <input type="hidden" name="userId" value={u.id} />}
       <Field label="Full name" htmlFor="u-name" required><input id="u-name" name="name" defaultValue={u?.name} required className="input-base" /></Field>
       <Field label="Email" htmlFor="u-email" required><input id="u-email" name="email" type="email" defaultValue={u?.email} required className="input-base" /></Field>
-      <Field label="Employee number" htmlFor="u-emp"><input id="u-emp" name="employeeNumber" defaultValue={p?.employeeNumber ?? ""} className="input-base" /></Field>
+      <Field label="Staff ID" htmlFor="u-emp" required hint="Used to sign in; resolves job title and content access."><input id="u-emp" name="employeeNumber" defaultValue={p?.employeeNumber ?? ""} required className="input-base uppercase" placeholder="e.g. D-20101" /></Field>
       {sel("departmentId", "Department", departments.map((d) => ({ id: d.id, label: d.name })), p?.departmentId)}
       {sel("businessUnitId", "Business unit", units.map((d) => ({ id: d.id, label: d.name })), p?.businessUnitId)}
       <Field label="Location" htmlFor="u-loc"><input id="u-loc" name="location" defaultValue={p?.location ?? ""} className="input-base" /></Field>

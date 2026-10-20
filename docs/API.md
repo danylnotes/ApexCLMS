@@ -29,7 +29,7 @@ Collection endpoints accept `page` and `pageSize` (max 50–100) and return `{ i
 | Method & path | Who | Description |
 | --- | --- | --- |
 | `GET /health` | public | Liveness/readiness; checks the database. 503 when degraded. |
-| `POST /auth/login` `{email,password}` | public | Starts a session (rate-limited, lockout after repeated failures). |
+| `POST /auth/login` `{staffId,password}` | public | Starts a session (rate-limited, lockout after repeated failures). |
 | `POST /auth/logout` | any | Revokes the current session. |
 | `GET /me` | any | Your metrics, compliance and Career Development Health with methods. |
 | `GET /courses?q&category&department&competency&difficulty&duration&cpd&delivery&mandatory&availability&sort&page` | learner | Published catalogue with your enrolment status. |
@@ -59,6 +59,6 @@ Collection endpoints accept `page` and `pageSize` (max 50–100) and return `{ i
 ## Example
 
 ```bash
-curl -c jar -H 'Content-Type: application/json' -d '{"email":"lina.saleh@apex-demo.test","password":"Demo#Apex2026!"}' http://localhost:3000/api/v1/auth/login
+curl -c jar -H 'Content-Type: application/json' -d '{"staffId":"D-20101","password":"Demo#Apex2026!"}' http://localhost:3000/api/v1/auth/login
 curl -b jar 'http://localhost:3000/api/v1/courses?q=safety&cpd=yes'
 ```

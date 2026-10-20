@@ -7,6 +7,20 @@ import { LoginForm } from "./login-form";
 
 export const metadata = { title: "Sign in" };
 
+/** Fictional demonstration personas (DEMO_MODE only). */
+const DEMO_ACCOUNTS = [
+  { staffId: "D-20101", who: "Lina Saleh", role: "Field Operator · new starter" },
+  { staffId: "D-20104", who: "Aisha Rahman", role: "Field Operator · on a learning path" },
+  { staffId: "D-20103", who: "Daniel Reyes", role: "Senior Operator · overdue training" },
+  { staffId: "D-20109", who: "Kwame Mensah", role: "Promoted · next level awaiting admin" },
+  { staffId: "D-20102", who: "James Okafor", role: "Senior Process Engineer" },
+  { staffId: "D-20105", who: "Priya Natarajan", role: "Reliability Engineer · pending CPD" },
+  { staffId: "D-10003", who: "Omar Haddad", role: "Line manager" },
+  { staffId: "D-10004", who: "Graham Whitfield", role: "Instructor" },
+  { staffId: "D-10001", who: "Dr Helen Mercer", role: "L&D administrator" },
+  { staffId: "D-10002", who: "Catherine Lowe", role: "Executive / HR" },
+];
+
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
   if (await getActor()) redirect("/dashboard");
@@ -14,38 +28,22 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const ssoConfigured = !!(process.env.ENTRA_TENANT_ID && process.env.ENTRA_CLIENT_ID);
   return (
     <div>
-      <h2 className="font-serif text-[1.625rem] font-semibold text-navy">Sign in</h2>
-      <p className="mt-1 text-ink-muted">Use your corporate email address.</p>
-      <div className="mt-6 space-y-3">
+      <p className="font-sans text-[0.8125rem] font-semibold text-copper">Welcome to {branding.productName}</p>
+      <h2 className="mt-1 font-sans text-[2rem] font-extrabold leading-tight tracking-[-0.03em] text-ink">Sign in</h2>
+      <p className="mt-2 text-[0.9375rem] text-ink-muted">Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.</p>
+      <div className="mt-5 space-y-3">
         {sp.reset && <Notice tone="ok">Your password has been updated. All other sessions were signed out.</Notice>}
-        {sp.activated && <Notice tone="ok">Your account is active. Sign in with your new password.</Notice>}
+        {sp.activated && <Notice tone="ok">Your account is active. Sign in with your staff ID and new password.</Notice>}
         {sp.signedOut && <Notice tone="info">You have signed out.</Notice>}
         {sp.verified && <Notice tone="ok">Your email address has been verified.</Notice>}
       </div>
-      <LoginForm next={sp.next ?? "/dashboard"} />
+      <LoginForm next={sp.next ?? "/dashboard"} demoAccounts={process.env.DEMO_MODE === "true" ? DEMO_ACCOUNTS : []} />
       <div className="mt-6 flex items-center justify-between font-sans text-sm">
-        <Link href="/forgot-password">Forgot your password?</Link>
+        <Link href="/forgot-password" className="font-medium text-ink">Forgot your password?</Link>
         <Link href="/sso" className="text-ink-muted">
-          Corporate single sign-on{ssoConfigured ? "" : " (not configured)"}
+          Single sign-on{ssoConfigured ? "" : " (not configured)"}
         </Link>
       </div>
-      {process.env.DEMO_MODE === "true" && (
-        <details className="mt-10 rounded border border-line bg-surface px-4 py-3 font-sans text-[0.8125rem]">
-          <summary className="cursor-pointer font-medium text-ink">Demonstration accounts (fictional)</summary>
-          <p className="mt-2 text-ink-muted">All demo accounts use the password <code className="rounded bg-canvas px-1">Demo#Apex2026!</code></p>
-          <ul className="mt-2 space-y-1 text-ink-muted">
-            <li><b className="text-ink">Employee — new starter:</b> lina.saleh@apex-demo.test</li>
-            <li><b className="text-ink">Employee — experienced:</b> james.okafor@apex-demo.test</li>
-            <li><b className="text-ink">Employee — overdue training:</b> daniel.reyes@apex-demo.test</li>
-            <li><b className="text-ink">Employee — on a learning path:</b> aisha.rahman@apex-demo.test</li>
-            <li><b className="text-ink">Employee — pending CPD:</b> priya.natarajan@apex-demo.test</li>
-            <li><b className="text-ink">Line manager:</b> omar.haddad@apex-demo.test</li>
-            <li><b className="text-ink">Instructor:</b> graham.whitfield@apex-demo.test</li>
-            <li><b className="text-ink">L&amp;D administrator:</b> helen.mercer@apex-demo.test</li>
-            <li><b className="text-ink">Executive / HR:</b> catherine.lowe@apex-demo.test</li>
-          </ul>
-        </details>
-      )}
       <p className="mt-8 font-sans text-[0.75rem] text-ink-faint">
         Need help? Contact <a href={`mailto:${branding.supportEmail}`}>{branding.supportEmail}</a>
       </p>

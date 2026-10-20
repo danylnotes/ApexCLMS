@@ -199,3 +199,34 @@ export const LEARNING_PATHS: { code: string; title: string; target?: string; aud
   { code: "LP-DAO", title: "Decision Analysis and Optimization", audience: "Engineers and analysts supporting investment and planning decisions.", summary: "Decision framing, decision trees, value of information and optimisation.", weeks: 14, cpd: true, published: true, items: [["QRA-320", true], ["DEC-330", true, "QRA-320"], ["COM-230", false]], competencies: ["DA-03", "RM-01"] },
   { code: "LP-LTP", title: "Leadership for Technical Professionals", audience: "Engineers and specialists in or moving into leadership roles.", summary: "Leading teams, coaching and ethical leadership in technical environments.", weeks: 16, cpd: true, published: true, items: [["LDR-300", true], ["ETH-100", true], ["DIG-150", false]], competencies: ["LD-01", "LD-02", "RC-02"] },
 ];
+
+/**
+ * Job-title audiences for course content (codes from JOB_ROLES). Courses not listed are open to every job title.
+ * Staff see a course only when they hold an access grant for one of these titles.
+ */
+export const COURSE_AUDIENCES: Record<string, string[]> = {
+  "PSM-101": ["FO", "SO", "SS", "OSI", "UO", "PRO", "PE", "SPE", "RE", "MT", "IT", "HSEA", "LA"],
+  "OPS-150": ["FO", "UO", "PRO"],
+  "OPX-210": ["SO", "SS", "OSI", "PE", "SPE"],
+  "INS-220": ["SO", "SS", "IT", "PE", "SPE", "HSEA"],
+  "REL-200": ["SO", "RE", "MT", "PE", "SPE"],
+  "REL-310": ["RE", "SPE"],
+  "AIM-260": ["RE", "SPE", "HSEA", "OSI"],
+  "LSS-300": ["SS", "OSI", "PE", "SPE", "RE", "CA"],
+  "QRA-320": ["OSI", "SPE", "RE", "HSEA"],
+  "UTL-240": ["UO", "SO", "SS", "PE"],
+  "LDR-300": ["SS", "OSI", "SPE", "LDS", "HRD"],
+  "OPS-320": ["SS", "OSI"],
+  "COM-230": ["CA", "SCO", "PE", "SPE", "OSI"],
+  "DAT-210": ["PE", "SPE", "RE", "LA", "CA"],
+  "PMG-200": ["PE", "SPE", "RE", "SCO", "OSI"],
+  "UPS-150": ["PRO", "FO", "SO", "UO"],
+  "DEC-330": ["PE", "SPE", "OSI", "CA"],
+  "REG-210": ["SS", "OSI", "PE", "SPE", "HSEA", "LA"],
+};
+
+/** Content access granted at seeding: each person's current job title plus the earlier levels of their track. */
+export const EARLIER_LEVELS: Record<string, string[]> = { SO: ["FO"], SS: ["SO", "FO"], OSI: ["SS", "SO", "FO"], SPE: ["PE"] };
+
+/** A promotion recorded by HR whose next-level content an administrator has not opened yet (demonstrates the admin decision). */
+export const PENDING_PROMOTION = { email: "kwame.mensah@apex-demo.test", from: "FO", to: "SO" };

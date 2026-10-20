@@ -24,7 +24,7 @@ export async function AnalyticsFiltersForm({ action, sp, showEmployment = true }
   );
   const y = new Date().getFullYear();
   return (
-    <form action={action} className="mb-8 flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface p-4 no-print">
+    <form action={action} className="mb-8 flex flex-wrap items-end gap-3 rounded-[22px] bg-surface p-4 no-print">
       {sel("department", "Department", departments.map((d) => [d.id, d.name]))}
       {sel("unit", "Business unit", units.map((u) => [u.id, u.name]))}
       {sel("role", "Job role", roles.map((r) => [r.id, r.title]))}
@@ -73,7 +73,7 @@ export function AnalyticsView({ a, drillHref, showExpiryNames = true }: { a: Ana
 
       <div className="grid gap-8 lg:grid-cols-2">
         <Panel title="Learning completion trend" description="Course completions per month, last 12 months."><TrendChart data={a.trend} xKey="month" yKey="completions" label="Completions" /></Panel>
-        <Panel title="Skills gap distribution" description="All role competency requirements in scope, by size of gap."><ColumnChart data={a.gapDistribution} xKey="bucket" yKey="count" label="Requirements" color="rgb(166 98 52)" /></Panel>
+        <Panel title="Skills gap distribution" description="All role competency requirements in scope, by size of gap."><ColumnChart data={a.gapDistribution} xKey="bucket" yKey="count" label="Requirements" color="rgb(186 222 58)" /></Panel>
       </div>
 
       <Panel title="By department" description={drillHref ? "Select a department to drill down within your authorised scope." : undefined} bodyClassName="pt-0">

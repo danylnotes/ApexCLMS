@@ -49,7 +49,7 @@ export function PlanView({ plan, role, competencies, courses }: { plan: PlanDeta
       <ol aria-label="Plan workflow" className="flex flex-wrap items-center gap-y-2 font-sans text-[0.75rem]">
         {PLAN_FLOW.map((s, i) => (
           <li key={s} className="flex items-center">
-            <span className={`rounded-[3px] px-2 py-1 ${i === stepIdx ? "bg-navy font-semibold text-white" : i < stepIdx ? "bg-navy-50 text-navy" : "text-ink-faint ring-1 ring-inset ring-line"}`} aria-current={i === stepIdx ? "step" : undefined}>{PLAN_STATUS_LABEL[s]}</span>
+            <span className={`rounded-lg px-2 py-1 ${i === stepIdx ? "bg-navy font-semibold text-white" : i < stepIdx ? "bg-navy-50 text-navy" : "text-ink-faint ring-1 ring-inset ring-line"}`} aria-current={i === stepIdx ? "step" : undefined}>{PLAN_STATUS_LABEL[s]}</span>
             {i < PLAN_FLOW.length - 1 && <span aria-hidden className="mx-1.5 text-ink-faint">→</span>}
           </li>
         ))}
@@ -85,7 +85,7 @@ export function PlanView({ plan, role, competencies, courses }: { plan: PlanDeta
           {plan.objectives.map((o, i) => {
             const overdue = o.targetDate && o.targetDate < now && !["COMPLETED", "DEFERRED"].includes(o.status);
             return (
-              <article key={o.id} className="rounded-md border border-line bg-surface">
+              <article key={o.id} className="rounded-[22px] bg-surface">
                 <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-3">
                   <div>
                     <p className="type-eyebrow">Objective {i + 1}{o.learningModel ? ` · ${MODEL[o.learningModel]}` : ""}</p>
@@ -102,7 +102,7 @@ export function PlanView({ plan, role, competencies, courses }: { plan: PlanDeta
                         {o.actions.map((a) => (
                           <li key={a.id} className="flex items-center gap-2">
                             {role === "OWNER" && plan.status !== "COMPLETED" ? (
-                              <ActionForm action={togglePlanActionAction} inline><input type="hidden" name="planId" value={plan.id} /><input type="hidden" name="actionId" value={a.id} /><button type="submit" aria-label={a.completedAt ? "Mark not done" : "Mark done"} className={`h-4 w-4 rounded-[3px] border ${a.completedAt ? "border-ok bg-ok" : "border-line-strong"}`} /></ActionForm>
+                              <ActionForm action={togglePlanActionAction} inline><input type="hidden" name="planId" value={plan.id} /><input type="hidden" name="actionId" value={a.id} /><button type="submit" aria-label={a.completedAt ? "Mark not done" : "Mark done"} className={`h-4 w-4 rounded-lg border ${a.completedAt ? "border-ok bg-ok" : "border-line-strong"}`} /></ActionForm>
                             ) : <span aria-hidden>{a.completedAt ? "✓" : "○"}</span>}
                             <span className={a.completedAt ? "text-ink-muted line-through" : ""}>{a.course ? <Link href={`/courses/${a.course.slug}`}>{a.title}</Link> : a.title}</span>
                             <span className="type-meta">{sentence(a.type)}{a.dueDate ? ` · ${fmtDate(a.dueDate)}` : ""}</span>

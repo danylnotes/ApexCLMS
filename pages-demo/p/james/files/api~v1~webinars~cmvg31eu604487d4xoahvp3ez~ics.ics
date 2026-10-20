@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apex CLMS//Webinars//EN
+BEGIN:VEVENT
+UID:cmvg31eu604487d4xoahvp3ez@apex-learning
+DTSTAMP:20261020T024831Z
+DTSTART:20261029T024659Z
+DTEND:20261029T040159Z
+SUMMARY:Reliability-Centred Maintenance: Lessons from the Field
+DESCRIPTION:Case studies of RCM implementation on critical rotating equipment\, including how failure data reshaped maintenance intervals.
+URL:http://localhost:3000/webinars/reliability-centred-maintenance-lessons-from-the-field
+END:VEVENT
+END:VCALENDAR

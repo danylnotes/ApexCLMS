@@ -1,5 +1,6 @@
 import type { AssessmentMethod } from "@prisma/client";
 import { z } from "zod";
+import { contentAccess, courseAudienceWhere } from "./access";
 import { prisma } from "../db";
 import { forbidden, invalid, notFound } from "../errors";
 import type { Actor } from "../auth/session";
@@ -51,11 +52,12 @@ async function currentAssessments(userId: string) {
 
 /** Builds a competency profile against a job role (current or target). */
 export async function buildProfile(userId: string, jobRoleId: string | null, now = new Date()) {
+  const access = await contentAccess(userId);
   const [requirements, current] = await Promise.all([
     jobRoleId
       ? prisma.roleCompetencyRequirement.findMany({
           where: { jobRoleId, competency: { isActive: true } },
-          include: { competency: { include: { domain: { include: { framework: { include: { levels: true } } } }, courses: { include: { course: true } } } } },
+          include: { competency: { include: { domain: { include: { framework: { include: { levels: true } } } }, courses: { where: { course: courseAudienceWhere(access) }, include: { course: true } } } } },
         })
       : Promise.resolve([]),
     currentAssessments(userId),

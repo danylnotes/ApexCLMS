@@ -8,31 +8,38 @@ const PW = "Demo#Apex2026!";
 
 describe("authentication", () => {
   it("accepts valid credentials and records the sign-in", async () => {
-    const r = await authenticate("james.okafor@apex-demo.test", PW, "10.0.0.1");
+    const r = await authenticate("D-20102", PW, "10.0.0.1");
     expect(r.ok).toBe(true);
     expect(await prisma.auditLog.count({ where: { action: "auth.login", actorId: r.ok ? r.userId : "" } })).toBeGreaterThan(0);
   });
 
+  it("signs in by staff ID only, case-insensitively, and never by email", async () => {
+    expect((await authenticate(" d-20102", PW, "10.0.0.3")).ok).toBe(true);
+    expect((await authenticate("james.okafor@apex-demo.test", PW, "10.0.0.3")).ok).toBe(false);
+  });
+
   it("returns the same message for unknown accounts and wrong passwords", async () => {
-    const a = await authenticate("nobody@apex-demo.test", PW, "10.0.0.2");
-    const b = await authenticate("james.okafor@apex-demo.test", "Wrong#Password1", "10.0.0.2");
+    const a = await authenticate("X-99999", PW, "10.0.0.2");
+    const b = await authenticate("d-20102 ", "Wrong#Password1", "10.0.0.2");
     expect(a.ok || b.ok).toBe(false);
     expect(!a.ok && !b.ok && a.error === b.error).toBe(true);
   });
 
   it("locks the account after repeated failures", async () => {
     const email = `lock.${Date.now()}@apex-demo.test`;
-    await prisma.user.create({ data: { email, name: "Lock Test", passwordHash: await hashPassword(PW), status: "ACTIVE", emailVerifiedAt: new Date() } });
-    for (let i = 0; i < 5; i++) await authenticate(email, "Bad#Password123", `10.1.${i}.1`);
-    const r = await authenticate(email, PW, "10.1.9.1");
+    const staffId = `L-${Date.now()}`;
+    await prisma.user.create({ data: { email, name: "Lock Test", passwordHash: await hashPassword(PW), status: "ACTIVE", emailVerifiedAt: new Date(), profile: { create: { employeeNumber: staffId } } } });
+    for (let i = 0; i < 5; i++) await authenticate(staffId, "Bad#Password123", `10.1.${i}.1`);
+    const r = await authenticate(staffId, PW, "10.1.9.1");
     expect(r.ok).toBe(false);
     expect(!r.ok && r.code).toBe("LOCKED");
   });
 
   it("blocks deactivated and unverified users", async () => {
     const email = `unverified.${Date.now()}@apex-demo.test`;
-    await prisma.user.create({ data: { email, name: "U", passwordHash: await hashPassword(PW), status: "ACTIVE" } });
-    const r = await authenticate(email, PW, "10.2.0.1");
+    const staffId = `U-${Date.now()}`;
+    await prisma.user.create({ data: { email, name: "U", passwordHash: await hashPassword(PW), status: "ACTIVE", profile: { create: { employeeNumber: staffId } } } });
+    const r = await authenticate(staffId, PW, "10.2.0.1");
     expect(!r.ok && r.code).toBe("UNVERIFIED");
   });
 
@@ -54,7 +61,8 @@ describe("authentication", () => {
 
   it("completes a password reset with a single-use token and revokes sessions", async () => {
     const email = `reset.${Date.now()}@apex-demo.test`;
-    const u = await prisma.user.create({ data: { email, name: "Reset", passwordHash: await hashPassword(PW), status: "ACTIVE", emailVerifiedAt: new Date() } });
+    const staffId = `R-${Date.now()}`;
+    const u = await prisma.user.create({ data: { email, name: "Reset", passwordHash: await hashPassword(PW), status: "ACTIVE", emailVerifiedAt: new Date(), profile: { create: { employeeNumber: staffId } } } });
     const { token: sessionToken } = await createSession(u.id, { ip: null, userAgent: null });
     await requestPasswordReset(email, "10.3.0.1");
     const mail = await prisma.emailOutbox.findFirstOrThrow({ where: { toAddress: email }, orderBy: { createdAt: "desc" } });
@@ -64,6 +72,6 @@ describe("authentication", () => {
     await setPasswordWithToken(token, "New-Strong#Pass2026", "New-Strong#Pass2026");
     await expect(setPasswordWithToken(token, "New-Strong#Pass2026", "New-Strong#Pass2026")).rejects.toThrow(/invalid or has expired/);
     expect((await resolveSession(sessionToken)).actor).toBeNull();
-    expect((await authenticate(email, "New-Strong#Pass2026", "10.3.0.2")).ok).toBe(true);
+    expect((await authenticate(staffId, "New-Strong#Pass2026", "10.3.0.2")).ok).toBe(true);
   });
 });

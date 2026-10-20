@@ -31,7 +31,7 @@ export async function freshEmployee(opts: { managerEmail?: string; roleCode?: st
   const role = await prisma.role.findUniqueOrThrow({ where: { key: "EMPLOYEE" } });
   const jobRole = opts.roleCode ? await prisma.jobRole.findUnique({ where: { code: opts.roleCode } }) : null;
   const policy = opts.policy ? await prisma.cpdPolicy.findFirst({ where: { name: opts.policy } }) : null;
-  const u = await prisma.user.create({ data: { email, name: `Test Employee ${n}`, status: "ACTIVE", emailVerifiedAt: new Date(), isDemo: true, roles: { create: [{ roleId: role.id }] }, profile: { create: { jobRoleId: jobRole?.id, cpdPolicyId: policy?.id } } } });
+  const u = await prisma.user.create({ data: { email, name: `Test Employee ${n}`, status: "ACTIVE", emailVerifiedAt: new Date(), isDemo: true, roles: { create: [{ roleId: role.id }] }, profile: { create: { employeeNumber: `T-${Date.now().toString(36).toUpperCase()}-${n}`, jobRoleId: jobRole?.id, cpdPolicyId: policy?.id } }, accessGrants: jobRole ? { create: { jobRoleId: jobRole.id, reason: "Starting job title" } } : undefined } });
   if (opts.managerEmail) {
     const m = await prisma.user.findUniqueOrThrow({ where: { email: opts.managerEmail } });
     await prisma.managerRelationship.create({ data: { managerId: m.id, employeeId: u.id } });

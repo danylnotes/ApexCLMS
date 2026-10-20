@@ -12,7 +12,8 @@ import { PERMISSIONS, type Permission } from "../permissions";
 export const userSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email(),
-  employeeNumber: z.string().trim().max(30).optional().default(""),
+  /** Staff ID: the sign-in identifier, which resolves the person's job title and content access. */
+  employeeNumber: z.string().trim().toUpperCase().min(3, "Enter the staff ID.").max(30).regex(/^[A-Z0-9-]+$/, "Staff IDs use letters, numbers and hyphens only."),
   departmentId: z.string().optional().nullable(),
   jobRoleId: z.string().optional().nullable(),
   targetJobRoleId: z.string().optional().nullable(),
@@ -56,15 +57,17 @@ export async function createUser(actor: Actor, raw: unknown, opts: { invite: boo
   assertCan(actor, "user.manage");
   const u = userSchema.parse(raw);
   if (await prisma.user.findUnique({ where: { email: u.email } })) throw conflict("A user with this email already exists.");
-  if (u.employeeNumber && (await prisma.userProfile.findUnique({ where: { employeeNumber: u.employeeNumber } }))) throw conflict("This employee number is already in use.");
+  if (await prisma.userProfile.findUnique({ where: { employeeNumber: u.employeeNumber } })) throw conflict("This staff ID is already in use.");
   const user = await prisma.user.create({
     data: {
       email: u.email, name: u.name, status: "INVITED",
-      profile: { create: { employeeNumber: u.employeeNumber || null, departmentId: u.departmentId || null, jobRoleId: u.jobRoleId || null, targetJobRoleId: u.targetJobRoleId || null, businessUnitId: u.businessUnitId || null, location: u.location || null, employmentStatus: u.employmentStatus, learningProgramme: u.learningProgramme || null, cpdPolicyId: u.cpdPolicyId || null } },
+      profile: { create: { employeeNumber: u.employeeNumber, departmentId: u.departmentId || null, jobRoleId: u.jobRoleId || null, targetJobRoleId: u.targetJobRoleId || null, businessUnitId: u.businessUnitId || null, location: u.location || null, employmentStatus: u.employmentStatus, learningProgramme: u.learningProgramme || null, cpdPolicyId: u.cpdPolicyId || null } },
     },
   });
   await setRoles(user.id, u.roleKeys);
   await setManager(user.id, u.managerId || null);
+  // The administrator creating the record opens content for the starting job title.
+  if (u.jobRoleId) await prisma.contentAccessGrant.create({ data: { userId: user.id, jobRoleId: u.jobRoleId, grantedById: actor.id, reason: "Starting job title" } });
   await audit(actor.id, "user.create", "user", user.id, { roles: u.roleKeys });
   const token = opts.invite ? await sendInvitation(user.id, actor.id) : null;
   return { user, token };
@@ -78,13 +81,20 @@ export async function updateUser(actor: Actor, userId: string, raw: unknown) {
   if (userId === actor.id && !u.roleKeys.includes("LD_ADMIN") && existing.roles.some((r) => r.role.key === "LD_ADMIN")) throw invalid("You cannot remove your own administrator role.");
   const dup = await prisma.user.findFirst({ where: { email: u.email, id: { not: userId } } });
   if (dup) throw conflict("Another user has this email address.");
+  const dupId = await prisma.userProfile.findFirst({ where: { employeeNumber: u.employeeNumber, userId: { not: userId } } });
+  if (dupId) throw conflict("Another user has this staff ID.");
+  const previousJobRoleId = (await prisma.userProfile.findUnique({ where: { userId }, select: { jobRoleId: true } }))?.jobRoleId ?? null;
   await prisma.user.update({ where: { id: userId }, data: { name: u.name, email: u.email } });
-  const profileData = { employeeNumber: u.employeeNumber || null, departmentId: u.departmentId || null, jobRoleId: u.jobRoleId || null, targetJobRoleId: u.targetJobRoleId || null, businessUnitId: u.businessUnitId || null, location: u.location || null, employmentStatus: u.employmentStatus, learningProgramme: u.learningProgramme || null, cpdPolicyId: u.cpdPolicyId || null };
+  const profileData = { employeeNumber: u.employeeNumber, departmentId: u.departmentId || null, jobRoleId: u.jobRoleId || null, targetJobRoleId: u.targetJobRoleId || null, businessUnitId: u.businessUnitId || null, location: u.location || null, employmentStatus: u.employmentStatus, learningProgramme: u.learningProgramme || null, cpdPolicyId: u.cpdPolicyId || null };
   await prisma.userProfile.upsert({ where: { userId }, create: { userId, ...profileData }, update: profileData });
   const before = existing.roles.map((r) => r.role.key).sort();
   await setRoles(userId, u.roleKeys);
   await setManager(userId, u.managerId || null);
   await audit(actor.id, "user.update", "user", userId, { rolesBefore: before, rolesAfter: [...u.roleKeys].sort() });
+  // A job title change (e.g. promotion) deliberately does not grant the new level's content: access is an explicit administrator decision.
+  const jobTitleChanged = (u.jobRoleId || null) !== previousJobRoleId;
+  if (jobTitleChanged) await audit(actor.id, "user.job_title.change", "user", userId, { from: previousJobRoleId, to: u.jobRoleId || null });
+  return { jobTitleChanged };
 }
 
 export async function setUserStatus(actor: Actor, userId: string, status: "ACTIVE" | "DEACTIVATED") {
@@ -116,6 +126,8 @@ export async function importUsersCsv(actor: Actor, csv: string, invite: boolean)
   const errors: { line: number; message: string }[] = [];
   const parsed: { name: string; email: string; employeeNumber: string; departmentId: string | null; jobRoleId: string | null; managerEmail: string; roleKeys: string[] }[] = [];
   const seen = new Set<string>();
+  const seenIds = new Set<string>();
+  const existingIds = new Set((await prisma.userProfile.findMany({ where: { employeeNumber: { not: null } }, select: { employeeNumber: true } })).map((p) => p.employeeNumber!));
   const parseLine = (l: string) => {
     const out: string[] = [];
     let cur = "";
@@ -135,6 +147,10 @@ export async function importUsersCsv(actor: Actor, csv: string, invite: boolean)
     const [name, emailRaw, employeeNumber, deptCode, roleCode, managerEmail, rolesRaw] = parseLine(line);
     const email = (emailRaw ?? "").toLowerCase();
     if (!name || name.length < 2) errors.push({ line: n, message: "Name is required." });
+    const staffId = (employeeNumber ?? "").toUpperCase();
+    if (!/^[A-Z0-9-]{3,30}$/.test(staffId)) errors.push({ line: n, message: `Invalid or missing staff ID "${employeeNumber ?? ""}".` });
+    else if (seenIds.has(staffId) || existingIds.has(staffId)) errors.push({ line: n, message: `Staff ID ${staffId} is already in use.` });
+    seenIds.add(staffId);
     if (!/^\S+@\S+\.\S+$/.test(email)) errors.push({ line: n, message: `Invalid email "${emailRaw ?? ""}".` });
     if (seen.has(email)) errors.push({ line: n, message: "Duplicate email in file." });
     if (existingUsers.some((u) => u.email === email)) errors.push({ line: n, message: `${email} already exists.` });
@@ -145,7 +161,7 @@ export async function importUsersCsv(actor: Actor, csv: string, invite: boolean)
     if (roleCode && !jr) errors.push({ line: n, message: `Unknown job role code "${roleCode}".` });
     const roleKeys = (rolesRaw || "EMPLOYEE").split(";").map((r) => r.trim().toUpperCase()).filter(Boolean);
     for (const r of roleKeys) if (!roles.some((x) => x.key === r)) errors.push({ line: n, message: `Unknown role "${r}".` });
-    parsed.push({ name, email, employeeNumber: employeeNumber ?? "", departmentId: dept?.id ?? null, jobRoleId: jr?.id ?? null, managerEmail: (managerEmail ?? "").toLowerCase(), roleKeys });
+    parsed.push({ name, email, employeeNumber: (employeeNumber ?? "").toUpperCase(), departmentId: dept?.id ?? null, jobRoleId: jr?.id ?? null, managerEmail: (managerEmail ?? "").toLowerCase(), roleKeys });
   });
   for (const [i, p] of parsed.entries()) {
     if (p.managerEmail && !existingUsers.some((u) => u.email === p.managerEmail) && !parsed.some((x) => x.email === p.managerEmail)) errors.push({ line: i + 2, message: `Manager ${p.managerEmail} not found.` });
@@ -154,7 +170,7 @@ export async function importUsersCsv(actor: Actor, csv: string, invite: boolean)
   const created: { id: string; email: string }[] = [];
   await prisma.$transaction(async (tx) => {
     for (const p of parsed) {
-      const u = await tx.user.create({ data: { email: p.email, name: p.name, status: "INVITED", profile: { create: { employeeNumber: p.employeeNumber || null, departmentId: p.departmentId, jobRoleId: p.jobRoleId, businessUnitId: depts.find((d) => d.id === p.departmentId)?.businessUnitId ?? null } }, roles: { create: roles.filter((r) => p.roleKeys.includes(r.key)).map((r) => ({ roleId: r.id })) } } });
+      const u = await tx.user.create({ data: { email: p.email, name: p.name, status: "INVITED", profile: { create: { employeeNumber: p.employeeNumber, departmentId: p.departmentId, jobRoleId: p.jobRoleId, businessUnitId: depts.find((d) => d.id === p.departmentId)?.businessUnitId ?? null } }, roles: { create: roles.filter((r) => p.roleKeys.includes(r.key)).map((r) => ({ roleId: r.id })) }, accessGrants: p.jobRoleId ? { create: { jobRoleId: p.jobRoleId, grantedById: actor.id, reason: "Starting job title" } } : undefined } });
       created.push({ id: u.id, email: u.email });
     }
     const all = [...existingUsers, ...created];

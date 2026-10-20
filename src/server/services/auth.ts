@@ -8,20 +8,25 @@ import { sendEmail } from "../email";
 import { loadSettingsUncached } from "../settings";
 import { revokeAllSessions } from "../auth/session";
 
-const GENERIC_FAILURE = "The email address or password is incorrect.";
+const GENERIC_FAILURE = "The staff ID or password is incorrect.";
 let dummyHash: Promise<string> | null = null;
 const dummy = () => (dummyHash ??= hashPassword("timing-equalisation-only"));
 
 export type LoginResult = { ok: true; userId: string } | { ok: false; error: string; code?: "UNVERIFIED" | "LOCKED" };
 
-/** Verifies credentials with rate limiting, lockout and constant-shape error messages. */
-export async function authenticate(emailRaw: string, password: string, ip: string | null): Promise<LoginResult> {
-  const email = emailRaw.trim().toLowerCase();
-  const settings = await loadSettingsUncached();
-  const [byEmail, byIp] = await Promise.all([rateLimit(`login:email:${email}`, 10, 900), rateLimit(`login:ip:${ip ?? "unknown"}`, 40, 900)]);
-  if (!byEmail.ok || !byIp.ok) return { ok: false, error: "Too many sign-in attempts. Please wait 15 minutes and try again." };
+export const normaliseStaffId = (raw: string) => raw.trim().toUpperCase().replace(/\s+/g, "");
 
-  const user = await prisma.user.findUnique({ where: { email } });
+/**
+ * Verifies a staff ID and password with rate limiting, lockout and constant-shape error messages.
+ * The staff ID resolves the person's record — and through it their job title and content access.
+ */
+export async function authenticate(staffIdRaw: string, password: string, ip: string | null): Promise<LoginResult> {
+  const staffId = normaliseStaffId(staffIdRaw);
+  const settings = await loadSettingsUncached();
+  const [byId, byIp] = await Promise.all([rateLimit(`login:staff:${staffId}`, 10, 900), rateLimit(`login:ip:${ip ?? "unknown"}`, 40, 900)]);
+  if (!byId.ok || !byIp.ok) return { ok: false, error: "Too many sign-in attempts. Please wait 15 minutes and try again." };
+
+  const user = staffId ? (await prisma.userProfile.findUnique({ where: { employeeNumber: staffId }, select: { user: true } }))?.user ?? null : null;
   if (!user || !user.passwordHash) {
     // Equalise timing with a dummy comparison to reduce account enumeration.
     await verifyPassword(password, await dummy());

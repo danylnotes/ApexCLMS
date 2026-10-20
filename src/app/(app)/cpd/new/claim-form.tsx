@@ -38,7 +38,7 @@ export function ClaimForm({ types, competencies, unit, pointsPerHour, max }: { t
   const aria = (k: keyof FormValues) => ({ "aria-invalid": !!errors[k], "aria-describedby": errors[k] ? `${k}-error` : undefined });
 
   return (
-    <form ref={formRef} action={action} className="space-y-6 rounded-md border border-line bg-surface p-6" encType="multipart/form-data" noValidate>
+    <form ref={formRef} action={action} className="space-y-6 rounded-[22px] bg-surface p-6" encType="multipart/form-data" noValidate>
       <input type="hidden" name="intent" ref={intent} defaultValue="draft" />
       <fieldset className="grid gap-5 sm:grid-cols-2">
         <legend className="type-section mb-3">Activity</legend>

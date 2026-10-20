@@ -3,34 +3,42 @@
 @tailwind utilities;
 
 /*
- * APEX design tokens. Colours are RGB triplets so Tailwind can apply opacity.
- * Palette: academic navy, slate blue, muted copper; warm neutral canvas.
+ * Apex CLMS design tokens. Colours are RGB triplets so Tailwind can apply opacity.
+ * Palette: near-black ink and sidebar, lime accent for the active state, off-white canvas,
+ * white rounded cards and soft pastel chips. "navy" is the primary dark; "copper" is the
+ * olive text shade of the lime accent (readable on white).
  */
 :root {
-  --navy: 22 38 68;
-  --navy-700: 35 56 94;
-  --navy-50: 236 240 247;
-  --slateblue: 74 94 128;
-  --copper: 166 98 52;
-  --copper-50: 249 241 234;
-  --canvas: 249 248 245;
+  --navy: 24 26 31;
+  --navy-700: 52 56 66;
+  --navy-50: 243 249 218;
+  --slateblue: 96 102 116;
+  --copper: 92 112 14;
+  --copper-50: 242 248 214;
+  --lime: 207 238 92;
+  --lime-600: 186 222 58;
+  --canvas: 243 243 238;
   --surface: 255 255 255;
-  --ink: 28 31 36;
-  --ink-muted: 88 96 108;
-  --ink-faint: 128 135 146;
-  --line: 227 225 220;
-  --line-strong: 205 202 196;
-  --ok: 30 104 62;
-  --ok-50: 233 244 237;
-  --warn: 150 96 10;
-  --warn-50: 252 244 226;
-  --crit: 170 38 38;
-  --crit-50: 251 236 235;
-  --info: 36 82 150;
-  --info-50: 234 241 251;
-  --idle: 110 116 126;
-  --idle-50: 241 241 242;
-  --focus: 36 82 150;
+  --ink: 24 26 31;
+  --ink-muted: 98 103 114;
+  --ink-faint: 140 145 154;
+  --line: 235 235 229;
+  --line-strong: 216 216 207;
+  --ok: 29 122 72;
+  --ok-50: 228 246 234;
+  --warn: 160 98 6;
+  --warn-50: 254 243 222;
+  --crit: 196 48 48;
+  --crit-50: 253 234 233;
+  --info: 52 90 200;
+  --info-50: 232 239 253;
+  --idle: 112 117 128;
+  --idle-50: 241 241 238;
+  --lavender: 236 232 253;
+  --peach: 254 236 224;
+  --mint: 223 246 236;
+  --sky: 225 239 253;
+  --focus: 52 90 200;
   color-scheme: light;
 }
 
@@ -49,13 +57,13 @@
   :focus-visible {
     outline: 2px solid rgb(var(--focus));
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 6px;
   }
   a {
     @apply text-navy-700 underline-offset-2;
   }
   ::selection {
-    background: rgb(var(--navy-50));
+    background: rgb(var(--lime) / 0.55);
   }
   table {
     font-variant-numeric: tabular-nums;
@@ -64,17 +72,24 @@
 
 @layer components {
   .type-display {
-    @apply font-serif text-[1.75rem] font-semibold leading-tight tracking-tight text-navy md:text-[2rem];
+    @apply font-sans text-[1.625rem] font-bold leading-tight tracking-[-0.02em] text-ink md:text-[1.875rem];
   }
   .type-title {
-    @apply font-serif text-[1.375rem] font-semibold leading-snug text-navy;
+    @apply font-sans text-[1.1875rem] font-bold leading-snug tracking-[-0.015em] text-ink;
   }
   .type-section {
-    @apply font-sans text-[0.9375rem] font-semibold text-ink;
+    @apply font-sans text-[1rem] font-bold tracking-[-0.01em] text-ink;
   }
   .type-eyebrow {
     @apply font-sans text-2xs font-semibold uppercase tracking-[0.08em] text-ink-faint;
   }
+  .card {
+    @apply rounded-[22px] bg-surface;
+  }
+  .chip-lavender { background: rgb(var(--lavender)); }
+  .chip-peach { background: rgb(var(--peach)); }
+  .chip-mint { background: rgb(var(--mint)); }
+  .chip-sky { background: rgb(var(--sky)); }
   .type-meta {
     @apply font-sans text-[0.8125rem] text-ink-muted;
   }
@@ -86,7 +101,7 @@
     @apply max-w-[68ch] font-body text-[1.0625rem] leading-[1.7] text-ink;
   }
   .prose-lesson h2 {
-    @apply mb-2 mt-8 font-serif text-[1.25rem] font-semibold text-navy first:mt-0;
+    @apply mb-2 mt-8 font-sans text-[1.25rem] font-bold text-ink first:mt-0;
   }
   .prose-lesson h3 {
     @apply mb-1 mt-6 font-sans text-base font-semibold;
@@ -104,8 +119,8 @@
     @apply font-semibold text-ink;
   }
   .input-base {
-    @apply block w-full rounded border border-line-strong bg-surface px-3 py-2 font-sans text-sm text-ink placeholder:text-ink-faint
-      focus:border-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-700/20 disabled:bg-idle-50 disabled:text-ink-muted;
+    @apply block w-full rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 font-sans text-sm text-ink placeholder:text-ink-faint
+      focus:border-navy focus:outline-none focus:ring-4 focus:ring-lime/50 disabled:bg-idle-50 disabled:text-ink-muted;
   }
 }
 
@@ -122,4 +137,25 @@
   .no-print { display: none !important; }
   body { background: white; }
   .print-plain { border: none !important; box-shadow: none !important; }
+}
+
+/* Sign-in photography: three photos crossfade on a 24s cycle (static under reduced motion). */
+.login-photo {
+  opacity: 0;
+  transform: scale(1.04);
+  animation: login-photo 24s infinite;
+}
+.login-photo:first-child {
+  opacity: 1;
+}
+@keyframes login-photo {
+  0% { opacity: 0; transform: scale(1.04); }
+  6% { opacity: 1; }
+  33% { opacity: 1; }
+  40% { opacity: 0; transform: scale(1.1); }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-photo { animation: none; opacity: 0; }
+  .login-photo:first-child { opacity: 1; transform: none; }
 }

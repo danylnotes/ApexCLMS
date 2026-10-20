@@ -1,5 +1,6 @@
 import { requireActor } from "@/server/auth/session";
 import { prisma } from "@/server/db";
+import { contentAccess, courseAudienceWhere } from "@/server/services/access";
 import { plansFor } from "@/server/services/plans";
 import { PlanView } from "@/components/plan-view";
 import { ActionForm, SubmitButton } from "@/components/forms";
@@ -16,7 +17,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   const [plans, competencies, courses, roles, profile] = await Promise.all([
     plansFor(actor, actor.id),
     prisma.competency.findMany({ where: { isActive: true }, orderBy: { code: "asc" }, select: { id: true, code: true, name: true } }),
-    prisma.course.findMany({ where: { status: "PUBLISHED" }, orderBy: { code: "asc" }, select: { id: true, code: true, title: true } }),
+    prisma.course.findMany({ where: { status: "PUBLISHED", ...courseAudienceWhere(await contentAccess(actor.id)) }, orderBy: { code: "asc" }, select: { id: true, code: true, title: true } }),
     prisma.jobRole.findMany({ where: { isActive: true }, orderBy: { title: "asc" } }),
     prisma.userProfile.findUnique({ where: { userId: actor.id } }),
   ]);

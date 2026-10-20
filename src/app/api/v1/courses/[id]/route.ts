@@ -2,6 +2,7 @@ import { apiRoute } from "@/server/api";
 import { prisma } from "@/server/db";
 import { notFound } from "@/server/errors";
 import { canManageCourse } from "@/server/policy";
+import { assertCanAccessCourse } from "@/server/services/access";
 
 /** Course details (no lesson bodies — content is served only through the player to enrolled learners). */
 export const GET = apiRoute<{ id: string }>(async (_req, actor, { id }) => {
@@ -15,5 +16,6 @@ export const GET = apiRoute<{ id: string }>(async (_req, actor, { id }) => {
     },
   });
   if (!c || (c.status !== "PUBLISHED" && !(await canManageCourse(actor, c.id)))) throw notFound("Course");
+  await assertCanAccessCourse(actor.id, c.id);
   return c;
 });

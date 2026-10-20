@@ -5,8 +5,8 @@ import { Field } from "@/components/ui";
 import { DELIVERY, DIFFICULTY } from "@/lib/status";
 import { createCourseAction, updateCourseAction } from "../staff-actions";
 
-export async function CourseDetailsForm({ course, departmentIds = [] }: { course?: Course; departmentIds?: string[] }) {
-  const [categories, departments] = await Promise.all([prisma.courseCategory.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }), prisma.department.findMany({ orderBy: { name: "asc" } })]);
+export async function CourseDetailsForm({ course, departmentIds = [], audienceRoleIds = [], canSetAudience = true }: { course?: Course; departmentIds?: string[]; audienceRoleIds?: string[]; canSetAudience?: boolean }) {
+  const [categories, departments, jobRoles] = await Promise.all([prisma.courseCategory.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }), prisma.department.findMany({ orderBy: { name: "asc" } }), prisma.jobRole.findMany({ where: { isActive: true }, orderBy: [{ grade: "asc" }, { title: "asc" }] })]);
   return (
     <ActionForm action={course ? updateCourseAction : createCourseAction} className="grid gap-5 md:grid-cols-2">
       {course && <input type="hidden" name="courseId" value={course.id} />}
@@ -28,6 +28,11 @@ export async function CourseDetailsForm({ course, departmentIds = [] }: { course
       <fieldset className="md:col-span-2">
         <legend className="font-sans text-[0.8125rem] font-medium">Relevant departments</legend>
         <div className="mt-2 grid gap-1 sm:grid-cols-3">{departments.map((d) => <label key={d.id} className="flex items-center gap-2 text-[0.875rem]"><input type="checkbox" name="departmentIds" value={d.id} defaultChecked={departmentIds.includes(d.id)} className="h-4 w-4 accent-[rgb(22,38,68)]" />{d.name}</label>)}</div>
+      </fieldset>
+      <fieldset className="md:col-span-2" disabled={!canSetAudience}>
+        <legend className="font-sans text-[0.8125rem] font-medium">Job-title audience</legend>
+        <p className="type-meta">Only staff granted one of the selected job titles can find and open this course. Leave all unticked to open it to every job title (e.g. site-wide mandatory training).{!canSetAudience && " Set by L&D administrators."}</p>
+        <div className="mt-2 grid gap-1 sm:grid-cols-3">{jobRoles.map((r) => <label key={r.id} className="flex items-center gap-2 text-[0.875rem]"><input type="checkbox" name="audienceRoleIds" value={r.id} defaultChecked={audienceRoleIds.includes(r.id)} className="h-4 w-4 accent-[rgb(22,38,68)]" />{r.title}</label>)}</div>
       </fieldset>
       <div><SubmitButton>{course ? "Save details" : "Create draft course"}</SubmitButton></div>
     </ActionForm>

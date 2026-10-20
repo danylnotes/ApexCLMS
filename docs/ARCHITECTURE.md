@@ -52,11 +52,12 @@ Integrity: foreign keys with explicit `onDelete` behaviour (history is `Restrict
 - **Competence vs knowledge**: course completion creates a `KNOWLEDGE` assessment; it counts towards a role requirement only if the framework's `allowCourseCompletionAsCompetence` is on. Expired assessments (past reassessment date) do not count.
 - **Attendance**: created only by an authorised recorder with a verification method; `UNVERIFIED` records are kept but excluded from CPD.
 - **Career Development Health**: five dimensions with explicit rules and configurable thresholds (`platform_settings.health`). Each dimension shows its evidence, gaps, next step and method. There is intentionally no overall index.
+- **Job-title content access** (`server/services/access.ts`): `course_audiences` lists the job titles a course is for (none = open to all); `content_access_grants` lists the job titles a person may see, decided by administrators. Catalogue, course pages, the player, enrolment, learning paths, recommendations, plan actions, assignments and the API all apply it. A job-title change is audited but grants nothing; existing enrolments and assignments keep their content accessible. Content administrators (`course.manage`) see everything.
 - **Reporting scope**: managers see their direct and indirect LINE reports; L&D with `reports.org` see everyone; executives (`analytics.aggregate`) see aggregates only, with small groups suppressed.
 
 ## Design system
 
-Tokens are CSS variables in `src/app/globals.css` (navy, slate blue, muted copper; warm neutral canvas; semantic ok/warn/crit/info/idle) mapped into Tailwind. Typography: Inter (interface), Source Sans 3 (reading), Source Serif 4 (editorial headings). Components in `src/components/ui.tsx` (PageHeader, Panel, Status, Metric, Table, TabNav, Progress, Field, Notice…). Status is always conveyed with text and a shape glyph (● ▲ ■ ○), never colour alone. Metrics carry a "How is this calculated?" disclosure.
+Tokens are CSS variables in `src/app/globals.css` (near-black ink and sidebar, lime accent for active states, off-white canvas, white rounded cards, pastel lavender/peach/mint/sky chips; semantic ok/warn/crit/info/idle) mapped into Tailwind. Typography: Plus Jakarta Sans. Components in `src/components/ui.tsx` (PageHeader, Panel, Status pills, Metric, Table, segmented TabNav, Progress, Field, Notice…) and `src/components/widgets.tsx` (ProgressRing, BarChart, MiniCalendar, StatCard). The sign-in page uses the organisation's plant photography (`public/login/`). Status is always conveyed with text and a shape glyph (● ▲ ■ ○), never colour alone. Metrics carry a "How is this calculated?" disclosure.
 
 ## Scaling notes
 

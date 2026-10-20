@@ -39,7 +39,7 @@ export const assignAction: A = async (_, fd) =>
       dueDate: optStr(fd, "dueDate"),
       reason: str(fd, "reason"),
     });
-    return `${r.created} assignment${r.created === 1 ? "" : "s"} created${r.skipped ? `; ${r.skipped} skipped (already assigned)` : ""}.`;
+    return `${r.created} assignment${r.created === 1 ? "" : "s"} created${r.skipped ? `; ${r.skipped} skipped (already assigned)` : ""}${r.noAccess ? `; ${r.noAccess} left out (no access to this job title's content)` : ""}.`;
   }, ["/manager/assign", "/manager", "/admin"]);
 
 export const cancelAssignmentAction: A = async (_, fd) =>
@@ -133,7 +133,7 @@ function courseDetails(fd: FormData) {
     code: str(fd, "code").toUpperCase(), title: str(fd, "title"), categoryId: str(fd, "categoryId"), synopsis: str(fd, "synopsis"), overview: str(fd, "overview"),
     businessRelevance: str(fd, "businessRelevance"), intendedAudience: str(fd, "intendedAudience"), prerequisitesText: str(fd, "prerequisitesText"), objectives: str(fd, "objectives"),
     outcomes: str(fd, "outcomes"), keywords: str(fd, "keywords"), difficulty: str(fd, "difficulty"), deliveryMode: str(fd, "deliveryMode"), provider: str(fd, "provider"),
-    estimatedHours: str(fd, "estimatedHours"), departmentIds: all(fd, "departmentIds"),
+    estimatedHours: str(fd, "estimatedHours"), departmentIds: all(fd, "departmentIds"), audienceRoleIds: all(fd, "audienceRoleIds"),
   };
 }
 
@@ -343,9 +343,21 @@ export const createUserAction: A = async (_, fd) => {
 
 export const updateUserAction: A = async (_, fd) =>
   runAction(async () => {
-    await org.updateUser(await requireActorOrThrow(), str(fd, "userId"), userInput(fd));
-    return "User updated.";
+    const r = await org.updateUser(await requireActorOrThrow(), str(fd, "userId"), userInput(fd));
+    return r.jobTitleChanged ? "User updated. The job title changed — review content access below; the new level is not opened until you grant it." : "User updated.";
   }, ["/admin/users", "/admin/users/[id]"]);
+
+export const contentAccessAction: A = async (_, fd) =>
+  runAction(async () => {
+    const actor = await requireActorOrThrow();
+    const { grantContentAccess, revokeContentAccess } = await import("@/server/services/access");
+    if (str(fd, "op") === "revoke") {
+      await revokeContentAccess(actor, str(fd, "grantId"));
+      return "Access removed.";
+    }
+    await grantContentAccess(actor, str(fd, "userId"), str(fd, "jobRoleId"), str(fd, "reason"));
+    return "Access granted. The staff member has been notified.";
+  }, ["/admin/users/[id]", "/catalogue", "/learning-paths"]);
 
 export const userStatusAction: A = async (_, fd) =>
   runAction(async () => {

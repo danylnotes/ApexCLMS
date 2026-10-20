@@ -148,3 +148,25 @@ test("authorisation: users cannot reach records outside their scope", async ({ p
   await page.context().clearCookies();
   expect((await page.request.get("/api/v1/me")).status()).toBe(401);
 });
+
+test("job-title access: promotion opens the next level only when an administrator grants it", async ({ page }) => {
+  // Kwame's staff ID resolves to Senior Operator, but only Field Operator content has been opened.
+  await login(page, "kwame.mensah@apex-demo.test");
+  await expect(page.getByText("Next level awaiting admin").first()).toBeVisible();
+  await page.goto("/catalogue?q=OPX-210");
+  await expect(page.getByRole("link", { name: /Operational Excellence/ })).toHaveCount(0);
+  expect((await page.request.get("/api/v1/courses/opx-210-operational-excellence-for-refinery-operations")).status()).toBe(404);
+
+  await login(page, "helen.mercer@apex-demo.test");
+  await page.goto("/admin/users?q=Kwame");
+  await page.getByRole("link", { name: "Kwame Mensah" }).click();
+  await expect(page.getByText("content for that level has not been granted yet")).toBeVisible();
+  await page.getByLabel("Grant access to job title").selectOption({ label: "Senior Operator (grade 4)" });
+  await page.getByLabel("Reason").fill("Promoted to Senior Operator");
+  await page.getByRole("button", { name: "Grant access" }).click();
+  await expect(page.getByRole("cell", { name: "Promoted to Senior Operator", exact: true })).toBeVisible();
+
+  await login(page, "kwame.mensah@apex-demo.test");
+  await page.goto("/catalogue?q=OPX-210");
+  await expect(page.getByRole("link", { name: /Operational Excellence/ }).first()).toBeVisible();
+});

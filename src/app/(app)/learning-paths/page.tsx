@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireActor } from "@/server/auth/session";
 import { prisma } from "@/server/db";
+import { contentAccess, pathAudienceWhere } from "@/server/services/access";
 import { PageHeader, Progress, Tag } from "@/components/ui";
 import { fmtHours } from "@/lib/format";
 
@@ -8,8 +9,9 @@ export const metadata = { title: "Learning Paths" };
 
 export default async function PathsPage() {
   const actor = await requireActor();
+  const access = await contentAccess(actor.id);
   const [paths, completions, mine] = await Promise.all([
-    prisma.learningPath.findMany({ where: { status: "PUBLISHED" }, orderBy: { title: "asc" }, include: { items: { select: { courseId: true, isRequired: true } }, targetJobRole: true } }),
+    prisma.learningPath.findMany({ where: { status: "PUBLISHED", OR: [pathAudienceWhere(access), { enrollments: { some: { userId: actor.id } } }, { assignments: { some: { userId: actor.id, status: { not: "CANCELLED" } } } }] }, orderBy: { title: "asc" }, include: { items: { select: { courseId: true, isRequired: true } }, targetJobRole: true } }),
     prisma.courseCompletion.findMany({ where: { userId: actor.id }, select: { courseId: true } }),
     prisma.learningPathEnrollment.findMany({ where: { userId: actor.id } }),
   ]);

@@ -68,12 +68,12 @@ describe("course administration", () => {
   it("imports users from CSV all-or-nothing", async () => {
     const helen = await actor("helen.mercer@apex-demo.test");
     const stamp = Date.now();
-    const bad = `name,email,employee_number,department_code,job_role_code,manager_email,roles\nA Person,a.${stamp}@example.com,,OPS,FO,,EMPLOYEE\nB Person,not-an-email,,NOPE,FO,,EMPLOYEE`;
+    const bad = `name,email,employee_number,department_code,job_role_code,manager_email,roles\nA Person,a.${stamp}@example.com,A-${stamp},OPS,FO,,EMPLOYEE\nB Person,not-an-email,B-${stamp},NOPE,FO,,EMPLOYEE`;
     const r1 = await importUsersCsv(helen, bad, false);
     expect(r1.created).toBe(0);
     expect(r1.errors.map((e) => e.line)).toEqual([3, 3]);
     expect(await prisma.user.count({ where: { email: `a.${stamp}@example.com` } })).toBe(0);
-    const good = `name,email,employee_number,department_code,job_role_code,manager_email,roles\nA Person,a.${stamp}@example.com,,OPS,FO,omar.haddad@apex-demo.test,EMPLOYEE\nB Person,b.${stamp}@example.com,,ENG,PE,a.${stamp}@example.com,EMPLOYEE;MANAGER`;
+    const good = `name,email,employee_number,department_code,job_role_code,manager_email,roles\nA Person,a.${stamp}@example.com,A-${stamp},OPS,FO,omar.haddad@apex-demo.test,EMPLOYEE\nB Person,b.${stamp}@example.com,B-${stamp},ENG,PE,a.${stamp}@example.com,EMPLOYEE;MANAGER`;
     const r2 = await importUsersCsv(helen, good, true);
     expect(r2.created).toBe(2);
     const b = await prisma.user.findUniqueOrThrow({ where: { email: `b.${stamp}@example.com` }, include: { managedBy: { include: { manager: true } }, roles: { include: { role: true } } } });
