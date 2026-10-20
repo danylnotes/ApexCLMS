@@ -2,8 +2,8 @@
 
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-const AXIS = { fontSize: 11, fill: "rgb(140 145 154)", fontFamily: "var(--font-jakarta)" };
-const TOOLTIP = { contentStyle: { fontSize: 12, borderRadius: 12, border: "1px solid rgb(235 235 229)", boxShadow: "0 8px 24px rgb(16 24 40 / 0.08)" } };
+const AXIS = { fontSize: 12, fill: "rgb(140 145 154)", fontFamily: "var(--font-jakarta)" };
+const TOOLTIP = { contentStyle: { fontSize: 13, borderRadius: 12, border: "1px solid rgb(235 235 229)", boxShadow: "0 8px 24px rgb(16 24 40 / 0.08)" } };
 
 export function TrendChart({ data, xKey, yKey, label }: { data: Record<string, string | number>[]; xKey: string; yKey: string; label: string }) {
   return (

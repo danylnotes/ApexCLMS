@@ -15,7 +15,7 @@ export function ProgressRing({ value, size = 48, stroke = 5, label, tone = "dark
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={bar} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} />
       </svg>
-      <span className={clsx("absolute font-sans font-bold tabular-nums", size >= 80 ? "text-lg" : "text-[0.6875rem]", tone === "light" ? "text-white" : "text-ink")} aria-hidden>
+      <span className={clsx("absolute font-sans font-bold tabular-nums", size >= 80 ? "text-lg" : "text-[0.75rem]", tone === "light" ? "text-white" : "text-ink")} aria-hidden>
         {children ?? `${v}%`}
       </span>
     </span>
@@ -29,21 +29,21 @@ export function BarChart({ data, highlight, unit, height = 160 }: { data: { labe
   return (
     <figure>
       <div className="flex gap-3">
-        <div className="flex flex-col justify-between pb-6 text-right font-sans text-[0.6875rem] tabular-nums text-ink-faint" style={{ height }} aria-hidden>
+        <div className="flex flex-col justify-between pb-6 text-right font-sans text-[0.75rem] tabular-nums text-ink-faint" style={{ height }} aria-hidden>
           {ticks.map((t, i) => <span key={i}>{t >= 10 ? Math.round(t) : Math.round(t * 10) / 10}{unit}</span>)}
         </div>
-        <ul className="flex flex-1 items-end justify-between gap-2" style={{ height }}>
+        <ul className="flex min-w-0 flex-1 items-end justify-between gap-1 sm:gap-2" style={{ height }}>
           {data.map((d, i) => {
             const on = i === highlight;
             return (
-              <li key={d.full} className="relative flex h-full flex-1 flex-col items-center justify-end gap-2">
-                {on && <span className="absolute -top-1 z-10 -translate-y-full whitespace-nowrap rounded-lg bg-navy px-2 py-1 font-sans text-[0.6875rem] font-semibold text-white shadow-pop">{d.value.toFixed(1)}{unit}</span>}
+              <li key={d.full} className="relative flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                {on && <span className="absolute -top-1 z-10 -translate-y-full whitespace-nowrap rounded-lg bg-navy px-2 py-1 font-sans text-[0.75rem] font-semibold text-white shadow-pop">{d.value.toFixed(1)}{unit}</span>}
                 <span
                   className={clsx("w-full max-w-[34px] rounded-full", on ? "bg-lime" : "bg-canvas")}
                   style={{ height: `calc(${(d.value / max) * 100}% - 24px)`, minHeight: 8 }}
                   title={`${d.full}: ${d.value.toFixed(1)}${unit}`}
                 />
-                <span className={clsx("font-sans text-[0.6875rem]", on ? "font-semibold text-ink" : "text-ink-faint")}>{d.label}</span>
+                <span className={clsx("max-w-full truncate font-sans text-[0.6875rem] sm:text-[0.75rem]", on ? "font-semibold text-ink" : "text-ink-faint")}>{d.label}</span>
               </li>
             );
           })}
@@ -101,7 +101,7 @@ export function StatCard({ icon, label, value, context, definition, tone, chip =
     <div className="card flex min-w-0 flex-col p-4 shadow-panel">
       <div className="flex items-start justify-between gap-2">
         <span className={clsx("flex h-10 w-10 items-center justify-center rounded-2xl text-navy", chipClass(chip))} aria-hidden>{icon}</span>
-        {tone && <span className={clsx("rounded-full px-2 py-0.5 font-sans text-[0.6875rem] font-semibold", tone === "crit" ? "bg-crit-50 text-crit" : "bg-warn-50 text-warn")}>{tone === "crit" ? "Action" : "Attention"}</span>}
+        {tone && <span className={clsx("rounded-full px-2 py-0.5 font-sans text-[0.75rem] font-semibold", tone === "crit" ? "bg-crit-50 text-crit" : "bg-warn-50 text-warn")}>{tone === "crit" ? "Action" : "Attention"}</span>}
       </div>
       <dt className="mt-3 font-sans text-[0.75rem] font-medium text-ink-muted">{label}</dt>
       <dd className="mt-0.5">
@@ -110,7 +110,7 @@ export function StatCard({ icon, label, value, context, definition, tone, chip =
       </dd>
       {definition && (
         <details className="mt-auto pt-2">
-          <summary className="cursor-pointer list-none font-sans text-[0.6875rem] text-ink-faint hover:text-ink [&::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none font-sans text-[0.75rem] text-ink-faint hover:text-ink [&::-webkit-details-marker]:hidden">
             <span className="underline decoration-dotted underline-offset-2">How is this calculated?</span>
           </summary>
           <p className="mt-1 text-[0.75rem] leading-snug text-ink-muted">{definition}</p>

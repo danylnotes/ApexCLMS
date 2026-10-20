@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apex CLMS//Webinars//EN
+BEGIN:VEVENT
+UID:cmvhaj94e044e7dsh9ss3ysx2@apex-learning
+DTSTAMP:20261020T230756Z
+DTSTART:20261103T230435Z
+DTEND:20261104T000435Z
+SUMMARY:Supervisor Clinic: Difficult Conversations on Shift
+DESCRIPTION:A small-group clinic for supervisors on structuring difficult conversations about performance and safety behaviours.
+URL:http://localhost:3000/webinars/supervisor-clinic-difficult-conversations-on-shift
+END:VEVENT
+END:VCALENDAR

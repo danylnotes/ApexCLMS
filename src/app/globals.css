@@ -44,11 +44,18 @@
 
 @layer base {
   html {
+    /* Slightly larger than the browser default for readability; every rem-based size scales with it. */
+    font-size: 106.25%;
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
   }
+  html,
   body {
-    @apply bg-canvas font-body text-[15px] leading-relaxed text-ink antialiased;
+    overflow-x: clip;
+  }
+  body {
+    @apply bg-canvas font-body text-[0.9375rem] leading-relaxed text-ink antialiased;
   }
   h1, h2, h3, h4 {
     @apply font-sans text-ink;
@@ -91,7 +98,7 @@
   .chip-mint { background: rgb(var(--mint)); }
   .chip-sky { background: rgb(var(--sky)); }
   .type-meta {
-    @apply font-sans text-[0.8125rem] text-ink-muted;
+    @apply font-sans text-[0.875rem] text-ink-muted;
   }
   .type-figure {
     @apply font-sans text-[1.5rem] font-semibold leading-none tracking-tight text-ink;
@@ -122,6 +129,29 @@
     @apply block w-full rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 font-sans text-sm text-ink placeholder:text-ink-faint
       focus:border-navy focus:outline-none focus:ring-4 focus:ring-lime/50 disabled:bg-idle-50 disabled:text-ink-muted;
   }
+}
+
+/* Phones: tables become stacked cards; each cell shows its column heading (labelled by ClientEnhancements). */
+@media (max-width: 639px) {
+  table.rtable { min-width: 0 !important; }
+  table.rtable thead { display: none; }
+  table.rtable, table.rtable tbody, table.rtable tr, table.rtable td { display: block; width: 100%; }
+  table.rtable tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 1rem; padding: 0.875rem 1.5rem; border-bottom: 1px solid rgb(var(--line)); }
+  table.rtable td:first-child, table.rtable td[colspan] { grid-column: 1 / -1; }
+  table.rtable tr:last-child { border-bottom: 0; }
+  table.rtable td { border: 0 !important; padding: 0.2rem 0 !important; text-align: left !important; }
+  table.rtable td:first-child { font-weight: 600; padding-bottom: 0.35rem !important; }
+  table.rtable td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(var(--ink-faint));
+  }
+  table.rtable td:empty { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

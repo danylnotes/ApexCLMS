@@ -14,6 +14,13 @@ function Icon({ name, className }: { name: string; className?: string }) {
   return <C className={className} aria-hidden />;
 }
 
+const TABS = [
+  { label: "Home", href: "/dashboard", icon: "LayoutDashboard" },
+  { label: "Learning", href: "/my-learning", icon: "BookOpen", match: "/learn" },
+  { label: "Catalogue", href: "/catalogue", icon: "Library", match: "/courses" },
+  { label: "Career", href: "/career", icon: "Compass" },
+] as { label: string; href: string; icon: string; match?: string }[];
+
 function isActive(pathname: string, href: string, match?: string) {
   if (href === "/admin" || href === "/manager") return pathname === href;
   return pathname === href || pathname.startsWith(href + "/") || (!!match && pathname.startsWith(match));
@@ -37,7 +44,7 @@ export function SideNav({ groups, brand, monogram, badges = {}, access }: { grou
     <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 pb-4 [scrollbar-width:thin]">
       {groups.map((g) => (
         <div key={g.label} className="mt-5 first:mt-1">
-          <p className="mb-1.5 px-3 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.09em] text-white/35">{g.label}</p>
+          <p className="mb-1.5 px-3 font-sans text-[0.75rem] font-semibold uppercase tracking-[0.09em] text-white/35">{g.label}</p>
           <ul className="space-y-0.5">
             {g.items.map((i) => {
               const active = isActive(pathname, i.href, i.match);
@@ -55,7 +62,7 @@ export function SideNav({ groups, brand, monogram, badges = {}, access }: { grou
                     <Icon name={i.icon} className={clsx("h-[18px] w-[18px] shrink-0", active ? "text-navy" : "text-white/45 group-hover:text-white/80")} />
                     <span className="min-w-0 flex-1 truncate">{i.label}</span>
                     {badge > 0 && (
-                      <span className={clsx("min-w-[20px] rounded-full px-1.5 text-center text-[0.6875rem] font-bold leading-5 tabular-nums", active ? "bg-navy text-lime" : "bg-lime text-navy")} aria-label={`${badge} pending`}>
+                      <span className={clsx("min-w-[20px] rounded-full px-1.5 text-center text-[0.75rem] font-bold leading-5 tabular-nums", active ? "bg-navy text-lime" : "bg-lime text-navy")} aria-label={`${badge} pending`}>
                         {badge > 99 ? "99+" : badge}
                       </span>
                     )}
@@ -79,7 +86,7 @@ export function SideNav({ groups, brand, monogram, badges = {}, access }: { grou
   const accessBlock = access && (
     <Link href="/profile#access" className="mx-3 mb-3 block rounded-[20px] bg-lime p-4 text-navy no-underline transition-transform hover:-translate-y-0.5">
       <span className="flex items-center justify-between">
-        <span className="font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-navy/60">Access level</span>
+        <span className="font-sans text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-navy/60">Access level</span>
         <ShieldCheck className="h-4 w-4 text-navy/70" aria-hidden />
       </span>
       <span className="mt-1.5 block font-sans text-[0.9375rem] font-bold leading-snug">{access.jobTitle ?? "No job title"}</span>
@@ -87,7 +94,7 @@ export function SideNav({ groups, brand, monogram, badges = {}, access }: { grou
         {access.staffId ?? "—"}
         {access.grade ? ` · Grade ${access.grade}` : ""} · {access.allContent ? "all content" : `${access.levels} level${access.levels === 1 ? "" : "s"} open`}
       </span>
-      {access.pending && !access.allContent && <span className="mt-2 block rounded-full bg-navy px-2.5 py-1 text-center font-sans text-[0.6875rem] font-semibold text-lime">Next level awaiting admin</span>}
+      {access.pending && !access.allContent && <span className="mt-2 block rounded-full bg-navy px-2.5 py-1 text-center font-sans text-[0.75rem] font-semibold text-lime">Next level awaiting admin</span>}
     </Link>
   );
 
@@ -98,20 +105,35 @@ export function SideNav({ groups, brand, monogram, badges = {}, access }: { grou
         {nav}
         {accessBlock}
       </aside>
-      <button
-        type="button"
-        className="fixed left-3 top-3 z-40 inline-flex h-10 w-10 items-center justify-center rounded-full bg-navy text-white shadow-pop lg:hidden no-print"
-        aria-label={open ? "Close navigation" : "Open navigation"}
-        aria-expanded={open}
-        aria-controls="mobile-nav"
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? <X className="h-4 w-4" aria-hidden /> : <Menu className="h-4 w-4" aria-hidden />}
-      </button>
+      {/* Mobile: app-style bottom tab bar; "Menu" opens the full navigation as a sheet. */}
+      <nav aria-label="Quick navigation" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 flex items-stretch justify-between rounded-[26px] bg-navy px-2 py-2 shadow-pop lg:hidden no-print">
+        {TABS.map((t) => {
+          const active = isActive(pathname, t.href, t.match);
+          const badge = badges[t.href] ?? 0;
+          return (
+            <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined} className={clsx("relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-[20px] py-1.5 font-sans text-[0.75rem] font-semibold no-underline transition-colors", active ? "bg-lime text-navy" : "text-white/60")}>
+              <Icon name={t.icon} className="h-[22px] w-[22px]" />
+              <span className="truncate">{t.label}</span>
+              {badge > 0 && <span className="absolute right-[18%] top-0.5 min-w-[18px] rounded-full bg-lime px-1 text-center text-[0.6875rem] font-bold leading-[18px] text-navy ring-2 ring-navy" aria-label={`${badge} pending`}>{badge > 99 ? "99+" : badge}</span>}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className={clsx("flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-[20px] py-1.5 font-sans text-[0.75rem] font-semibold", open ? "bg-lime text-navy" : "text-white/60")}
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          aria-controls="mobile-nav"
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? <X className="h-[22px] w-[22px]" aria-hidden /> : <Menu className="h-[22px] w-[22px]" aria-hidden />}
+          <span>Menu</span>
+        </button>
+      </nav>
       {open && (
         <div className="fixed inset-0 z-30 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
-          <div className="absolute inset-0 bg-ink/40" onClick={() => setOpen(false)} />
-          <aside id="mobile-nav" className="absolute bottom-2 left-2 top-2 flex w-[276px] flex-col overflow-hidden rounded-[26px] bg-navy pt-12 shadow-pop">
+          <div className="absolute inset-0 bg-ink/50 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
+          <aside id="mobile-nav" className="absolute inset-x-2 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+76px)] top-[max(0.5rem,env(safe-area-inset-top))] flex flex-col overflow-hidden rounded-[28px] bg-navy shadow-pop">
             {brandBlock}
             {nav}
             {accessBlock}

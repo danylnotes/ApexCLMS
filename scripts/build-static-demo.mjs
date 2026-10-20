@@ -21,7 +21,6 @@ const BASE = arg("base", "http://localhost:3200");
 const OUT = path.resolve(arg("out", "pages-demo"));
 const PASSWORD = "Demo#Apex2026!";
 const MAX_PAGES = Number(arg("max", 260));
-const REPO_URL = arg("repo", "https://github.com/danylnotes/ApexCLMS");
 
 const PERSONAS = [
   { key: "lina", staffId: "D-20101", email: "lina.saleh@apex-demo.test", name: "Lina Saleh", role: "Field Operator · new employee", look: "A three-week starter: induction learning path, first mandatory training and no history yet." },
@@ -128,13 +127,12 @@ body{padding-top:var(--demo-h)}
 #demo-bar .long{overflow:hidden;text-overflow:ellipsis}
 @media (max-width:640px){#demo-bar .wide{display:none}}
 aside.fixed.bg-navy{top:calc(var(--demo-h) + 12px)}
-button[aria-controls="mobile-nav"]{top:calc(var(--demo-h) + 8px)!important}
 header.sticky{top:var(--demo-h)!important}
 #demo-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:70;width:max-content;max-width:min(92vw,520px);padding:12px 16px;border-radius:16px;background:#181a1f;color:#fff;font:14px/1.45 Inter,system-ui,sans-serif;box-shadow:0 8px 24px rgb(16 24 40/.25)}
 #demo-toast[hidden]{display:none}
-body.demo-nav-open aside.bg-navy.fixed{display:flex!important;z-index:35;padding-top:48px;width:276px;bottom:8px;left:8px;box-shadow:0 16px 40px rgb(24 26 31/.35)}
+body.demo-nav-open aside.bg-navy.fixed{display:flex!important;z-index:45;top:calc(var(--demo-h) + 8px);left:8px;right:8px;width:auto;bottom:calc(max(0.75rem,env(safe-area-inset-bottom)) + 76px);box-shadow:0 16px 40px rgb(24 26 31/.35)}
 </style>
-<div id="demo-bar" role="note"><span class="long">Read-only demo · <b>${p.name}</b> · Staff ID ${p.staffId}<span class="wide"> (${p.role})</span></span><a href="../../index.html">Sign in as someone else</a><a class="wide" href="${REPO_URL}" target="_blank" rel="noopener">Source</a></div>
+<div id="demo-bar" role="note"><span class="long">Read-only demo · <b>${p.name}</b> · Staff ID ${p.staffId}<span class="wide"> (${p.role})</span></span><a href="../../index.html">Sign in as someone else</a></div>
 <div id="demo-toast" role="status" hidden></div>
 <script>
 (function(){
@@ -144,11 +142,20 @@ body.demo-nav-open aside.bg-navy.fixed{display:flex!important;z-index:35;padding
     e.preventDefault();
     var b=e.submitter;
     if(b&&/Sign out/.test(b.textContent||'')){location.href='../../index.html';return;}
-    toast('This is a static, read-only demonstration on GitHub Pages, so nothing is saved. Run the full app (Next.js and PostgreSQL) to use forms, enrolment, assessments and approvals.');
+    toast('This is a read-only preview of Apex CLMS, so changes are not saved. Saving, enrolment, assessments and approvals work in the full platform.');
   },true);
   document.addEventListener('click',function(e){
     var b=e.target.closest&&e.target.closest('button[aria-controls="mobile-nav"]');
     if(b){var o=document.body.classList.toggle('demo-nav-open');b.setAttribute('aria-expanded',o);}
+  });
+  // Same enhancements as src/components/client-enhancements.tsx: label table cells for stacked phone
+  // layouts, and open desktop-only disclosure panels on wide screens.
+  document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('table.rtable').forEach(function(t){
+    var heads=[].map.call(t.querySelectorAll('thead th'),function(th){return (th.textContent||'').trim();});
+    t.querySelectorAll('tbody tr').forEach(function(tr){var col=0;[].forEach.call(tr.children,function(td){if(col>0&&!td.hasAttribute('data-label'))td.setAttribute('data-label',heads[col]||'');col+=Number(td.getAttribute('colspan')||1);});});
+  });
+  if(window.matchMedia('(min-width: 1024px)').matches)document.querySelectorAll('details[data-desktop-open]').forEach(function(d){d.open=true;});
   });
 })();
 </script><!--/demo-chrome-->`;
@@ -213,8 +220,10 @@ function indexPage() {
 :root{--ink:#181a1f;--muted:#62676f;--faint:#8c919a;--lime:#cfee5c;--canvas:#f3f3ee;--surface:#fff;--line:#d8d8cf;--crit:#c43030}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--canvas);color:var(--ink);font:15px/1.6 "Plus Jakarta Sans",system-ui,sans-serif;padding:12px;min-height:100vh}
-.shell{display:grid;gap:12px;min-height:calc(100vh - 24px)}
+body{background:var(--ink);color:var(--ink);font:16px/1.6 "Plus Jakarta Sans",system-ui,sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent}
+@media(min-width:1024px){body{background:var(--canvas);padding:12px}}
+.shell{display:grid;min-height:100vh}
+@media(min-width:1024px){.shell{gap:12px;min-height:calc(100vh - 24px)}}
 @media(min-width:1024px){.shell{grid-template-columns:7fr 5fr}}
 .hero{position:relative;overflow:hidden;border-radius:32px;background:var(--ink);color:#fff;display:none;flex-direction:column;justify-content:space-between}
 .hero>.bg{position:absolute;inset:0}
@@ -233,10 +242,15 @@ h1{margin:0;font-weight:800;font-size:44px;line-height:1.05;letter-spacing:-.03e
 .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:32px}
 .pillars div{border-radius:16px;background:rgb(255 255 255/.1);backdrop-filter:blur(10px);padding:16px;font-size:13px;color:rgb(255 255 255/.8)}
 .pillars b{display:block;color:var(--lime);font-size:14px}
-.panel{border-radius:32px;background:var(--surface);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.panel{position:relative;margin-top:-36px;border-radius:32px 32px 0 0;background:var(--surface);display:flex;justify-content:center;padding:28px 20px max(40px,env(safe-area-inset-bottom))}
+@media(min-width:1024px){.panel{margin-top:0;border-radius:32px;align-items:center;padding:40px 20px}}
 .form{width:100%;max-width:440px}
-.mobile-photo{height:140px;border-radius:24px;background:url(login/plant-flare.jpg) center 60%/cover;margin-bottom:28px}
-@media(min-width:1024px){.mobile-photo{display:none}}
+.mhero{position:relative;height:52vh;min-height:340px;overflow:hidden;color:#fff}
+.mhero .top{padding:max(20px,env(safe-area-inset-top)) 20px 0}
+.mhero .headline{position:absolute;left:20px;right:20px;bottom:56px;margin:0;font-weight:800;font-size:32px;line-height:1.05;letter-spacing:-.03em}
+@media(min-width:1024px){.mhero{display:none}}
+.grab{width:48px;height:6px;border-radius:99px;background:var(--line);margin:0 auto 24px}
+@media(min-width:1024px){.grab{display:none}}
 .kicker{margin:0;color:#5c700e;font-weight:600;font-size:13px}
 h2{margin:4px 0 0;font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.15}
 .intro{color:var(--muted);margin:8px 0 0}
@@ -264,6 +278,16 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
 </head>
 <body>
 <div class="shell">
+  <section class="mhero" aria-label="Apex CLMS — industrial plant">
+    <div class="bg" aria-hidden="true" style="position:absolute;inset:0">
+      <div class="photo" style="background-image:url(login/plant-flare.jpg);background-position:center 60%"></div>
+      <div class="photo" style="background-image:url(login/plant-daylight.jpg);background-position:center 55%"></div>
+      <div class="photo" style="background-image:url(login/plant-blue.jpg);background-position:center 40%"></div>
+      <div class="shade"></div>
+    </div>
+    <div class="top" style="position:relative"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small>Meridian Energy (fictional demo)</small></span></div></div>
+    <p class="headline">Competence is built deliberately.</p>
+  </section>
   <aside class="hero" aria-label="Apex CLMS — industrial plant">
     <div class="bg" aria-hidden="true">
       <div class="photo" style="background-image:url(login/plant-flare.jpg);background-position:center 60%"></div>
@@ -280,11 +304,11 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
   </aside>
   <main class="panel">
     <div class="form">
-      <div class="mobile-photo" aria-hidden="true"></div>
+      <div class="grab" aria-hidden="true"></div>
       <p class="kicker">Welcome to Apex CLMS</p>
       <h2>Sign in</h2>
       <p class="intro">Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.</p>
-      <p class="note"><b>Static, read-only demo.</b> GitHub Pages serves snapshots captured from the running app for fictional staff; this form only opens the matching snapshot and is not real authentication. Saving, enrolling and approvals need the full app — see <a href="${REPO_URL}" target="_blank" rel="noopener">the source</a>.</p>
+      <p class="note"><b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.</p>
       <form id="f" novalidate>
         <label for="sid">Staff ID</label>
         <input id="sid" autocomplete="off" spellcheck="false" placeholder="e.g. D-20101" required aria-describedby="sid-hint">
@@ -294,7 +318,7 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
         <p id="err" class="err" role="alert" hidden></p>
         <button class="submit" type="submit">Sign in</button>
       </form>
-      <details open>
+      <details>
         <summary>Demonstration staff IDs (fictional)</summary>
         <p class="hint">All use the password <code>${PASSWORD}</code>. Choose one to fill the form.</p>
         <ul>${rows}

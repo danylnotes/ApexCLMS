@@ -73,7 +73,7 @@ export default async function DashboardPage() {
     const w = weeks.find((x) => at > x.start && at <= x.end);
     if (w) w.value += s.timeSpentSeconds / 3600;
   }
-  const bars = weeks.map((w, i) => ({ label: i === WEEKS - 1 ? "This wk" : fmtDate(w.end).replace(/ \d{4}$/, ""), full: `Week ending ${fmtDate(w.end)}`, value: Math.round(w.value * 10) / 10 }));
+  const bars = weeks.map((w, i) => ({ label: i === WEEKS - 1 ? "Now" : `${w.end.getUTCDate()}/${w.end.getUTCMonth() + 1}`, full: `Week ending ${fmtDate(w.end)}`, value: Math.round(w.value * 10) / 10 }));
   const peak = bars.reduce((best, b, i) => (b.value > bars[best].value ? i : best), WEEKS - 1);
   const totalHours = bars.reduce((sum, b) => sum + b.value, 0);
 
@@ -93,7 +93,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
-      <section aria-labelledby="welcome" className="relative overflow-hidden rounded-[28px] bg-navy px-6 py-7 text-white sm:px-8">
+      <section aria-labelledby="welcome" className="relative overflow-hidden rounded-[28px] bg-navy px-5 py-6 text-white sm:px-8 sm:py-7">
         <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-lime/20 blur-3xl" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
@@ -108,8 +108,8 @@ export default async function DashboardPage() {
                 ["Business unit", p?.businessUnit?.name],
                 ["Programme", p?.learningProgramme],
                 ["Target role", p?.targetJobRole?.title],
-              ].map(([k, v]) => (
-                <div key={k} className="flex gap-1.5 rounded-full bg-white/10 px-3 py-1.5">
+              ].map(([k, v], i) => (
+                <div key={k} className={`gap-1.5 rounded-full bg-white/10 px-3 py-1.5 ${i >= 2 && i <= 4 ? "hidden sm:flex" : "flex"}`}>
                   <dt className="text-white/55">{k}</dt>
                   <dd className="font-semibold text-white">{v ?? "—"}</dd>
                 </div>
@@ -157,14 +157,14 @@ export default async function DashboardPage() {
             {newForYou.length === 0 ? (
               <EmptyState title="You are enrolled on everything new">Browse the catalogue for more courses open to your job title.</EmptyState>
             ) : (
-              <ul className="grid gap-3 md:grid-cols-3">
+              <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
                 {newForYou.map((c, i) => (
-                  <li key={c.id} className={`group relative flex flex-col rounded-[22px] p-5 ${chipClass(i)}`}>
+                  <li key={c.id} className={`group relative flex w-[80%] shrink-0 snap-start flex-col rounded-[22px] p-5 sm:w-[46%] md:w-auto ${chipClass(i)}`}>
                     <div className="flex items-start justify-between gap-2">
                       <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface text-navy" aria-hidden><BookOpen className="h-5 w-5" /></span>
-                      <span className="rounded-full bg-surface/70 px-2.5 py-1 font-sans text-[0.6875rem] font-semibold text-ink">{c.code}</span>
+                      <span className="rounded-full bg-surface/70 px-2.5 py-1 font-sans text-[0.75rem] font-semibold text-ink">{c.code}</span>
                     </div>
-                    <p className="mt-4 font-sans text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">{c.category.name}</p>
+                    <p className="mt-4 font-sans text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">{c.category.name}</p>
                     <Link href={`/courses/${c.slug}`} className="mt-1 font-sans text-[1rem] font-bold leading-snug text-ink no-underline after:absolute after:inset-0 hover:underline">{c.title}</Link>
                     <div className="mt-auto flex items-center justify-between pt-4 font-sans text-[0.75rem] text-ink-muted">
                       <span>{fmtHours(c.estimatedHours.toString())}{c.cpdEligible ? " · CPD" : ""}{c.isMandatory ? " · Mandatory" : ""}</span>
@@ -176,7 +176,7 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] [&>*]:min-w-0">
             {/* Study hours */}
             <Panel id="hours" title="Study hours" description={`${totalHours.toFixed(1)} h of lesson time in the last ${WEEKS} weeks`} actions={<span className="flex h-9 w-9 items-center justify-center rounded-full bg-canvas text-ink" aria-hidden><TrendingUp className="h-4 w-4" /></span>}>
               <BarChart data={bars} highlight={peak} unit="h" />
@@ -288,7 +288,7 @@ export default async function DashboardPage() {
 
           <Panel id="calendar">
             <MiniCalendar today={o.computedAt} events={calendar} />
-            <p className="mt-3 flex flex-wrap gap-3 font-sans text-[0.6875rem] text-ink-faint">
+            <p className="mt-3 flex flex-wrap gap-3 font-sans text-[0.75rem] text-ink-faint">
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />Webinar</span>
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden />Deadline</span>
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-crit" aria-hidden />Overdue</span>
@@ -302,7 +302,7 @@ export default async function DashboardPage() {
               <ol className="space-y-3.5">
                 {priorities.map((pr, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-sans text-[0.6875rem] font-bold tabular-nums ${pr.tone === "crit" ? "bg-crit-50 text-crit" : pr.tone === "warn" ? "bg-warn-50 text-warn" : "bg-lime text-navy"}`}>
+                    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-sans text-[0.75rem] font-bold tabular-nums ${pr.tone === "crit" ? "bg-crit-50 text-crit" : pr.tone === "warn" ? "bg-warn-50 text-warn" : "bg-lime text-navy"}`}>
                       {i + 1}
                     </span>
                     <div className="min-w-0">

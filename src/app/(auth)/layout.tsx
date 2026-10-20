@@ -10,7 +10,26 @@ const PHOTOS = [
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const { branding } = await getSettings();
   return (
-    <div className="min-h-screen bg-canvas p-3 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-3">
+    <div className="min-h-screen bg-navy lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-3 lg:bg-canvas lg:p-3">
+      {/* Phones: full-width photo header; the form rises over it as a sheet. */}
+      <section className="relative h-[52vh] min-h-[340px] overflow-hidden text-white lg:hidden" aria-label={`${branding.productName} — industrial plant`}>
+        <div aria-hidden className="absolute inset-0">
+          {PHOTOS.map((p, i) => (
+            <div key={p.src} className="login-photo absolute inset-0 bg-cover" style={{ backgroundImage: `url(${p.src})`, backgroundPosition: p.position, animationDelay: `${i * 8}s` }} />
+          ))}
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(24_26_31/0.6)_0%,rgb(24_26_31/0.05)_30%,rgb(24_26_31/0.2)_55%,rgb(24_26_31/0.9)_100%)]" />
+        </div>
+        <div className="relative flex items-center gap-3 px-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime font-sans text-xl font-extrabold text-navy">{branding.monogram}</span>
+          <div>
+            <p className="font-sans text-lg font-bold leading-tight">{branding.productName}</p>
+            <p className="font-sans text-[0.75rem] text-white/75">{branding.organisationName}</p>
+          </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-14 px-5">
+          <p className="font-sans text-[2rem] font-extrabold leading-[1.05] tracking-[-0.03em]">{branding.loginHeadline}</p>
+        </div>
+      </section>
       <aside className="relative hidden min-h-[calc(100vh-1.5rem)] overflow-hidden rounded-[32px] bg-navy text-white lg:flex lg:flex-col lg:justify-between" aria-label={`${branding.productName} — industrial plant`}>
         <div aria-hidden className="absolute inset-0">
           {PHOTOS.map((p, i) => (
@@ -49,15 +68,9 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
           </dl>
         </div>
       </aside>
-      <main className="flex min-h-[calc(100vh-1.5rem)] items-center justify-center rounded-[32px] bg-surface px-5 py-10 sm:px-10">
+      <main className="relative -mt-9 flex justify-center rounded-t-[32px] bg-surface px-5 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-7 sm:px-10 lg:mt-0 lg:min-h-[calc(100vh-1.5rem)] lg:items-center lg:rounded-[32px] lg:py-10">
         <div className="w-full max-w-[420px]">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-lime font-sans text-lg font-extrabold text-navy">{branding.monogram}</span>
-            <p className="font-sans text-base font-bold text-ink">{branding.productName}</p>
-          </div>
-          <div aria-hidden className="relative mb-8 h-36 overflow-hidden rounded-3xl lg:hidden">
-            <div className="absolute inset-0 bg-cover" style={{ backgroundImage: `url(${PHOTOS[0].src})`, backgroundPosition: PHOTOS[0].position }} />
-          </div>
+          <div aria-hidden className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-line-strong lg:hidden" />
           {children}
         </div>
       </main>

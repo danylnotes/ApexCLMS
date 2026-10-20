@@ -218,7 +218,7 @@ export function MetricRow({ children, cols = 4 }: { children: ReactNode; cols?: 
 export function Table({ children, caption, className }: { children: ReactNode; caption?: string; className?: string }) {
   return (
     <div className={clsx("-mx-6 overflow-x-auto", className)}>
-      <table className="w-full min-w-[560px] border-collapse text-left font-sans text-[0.8125rem]">
+      <table className="rtable w-full min-w-[560px] border-collapse text-left font-sans text-[0.875rem]">
         {caption && <caption className="sr-only">{caption}</caption>}
         {children}
       </table>

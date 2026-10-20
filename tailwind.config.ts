@@ -31,7 +31,7 @@ export default {
         serif: ["var(--font-jakarta)", "system-ui", "sans-serif"],
       },
       fontSize: {
-        "2xs": ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.02em" }],
+        "2xs": ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.02em" }],
       },
       borderRadius: { DEFAULT: "10px", md: "14px", lg: "18px", xl: "22px", "2xl": "26px", "3xl": "30px" },
       boxShadow: {

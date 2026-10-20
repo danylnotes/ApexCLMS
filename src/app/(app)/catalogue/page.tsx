@@ -19,6 +19,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
     return `/catalogue?${p.toString()}`;
   };
   const active = Object.entries(sp).filter(([k, v]) => v && !["page", "sort"].includes(k));
+  const filtersOn = active.filter(([k]) => k !== "q").length;
   const select = (name: string, label: string, options: [string, string][]) => (
     <div className="space-y-1">
       <label htmlFor={`f-${name}`} className="type-eyebrow block">{label}</label>
@@ -37,8 +38,15 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
           <form action="/catalogue" className="space-y-4">
             <div className="space-y-1">
               <label htmlFor="f-q" className="type-eyebrow block">Search</label>
-              <input id="f-q" name="q" type="search" defaultValue={sp.q ?? ""} placeholder="Title, code or keyword" className="input-base h-9" />
+              <input id="f-q" name="q" type="search" defaultValue={sp.q ?? ""} placeholder="Title, code or keyword" className="input-base h-11 !rounded-full" />
             </div>
+            {/* Phones: filters fold away behind one button; desktop opens them (see ClientEnhancements). */}
+            <details className="group space-y-4 lg:space-y-0" data-desktop-open open={filtersOn > 0 || undefined}>
+              <summary className="flex cursor-pointer list-none items-center justify-between rounded-full bg-surface px-4 py-2.5 font-sans text-sm font-semibold text-ink shadow-panel lg:hidden [&::-webkit-details-marker]:hidden">
+                <span>Filters{filtersOn ? ` · ${filtersOn} active` : ""}</span>
+                <span aria-hidden className="text-ink-faint transition-transform group-open:rotate-180">⌄</span>
+              </summary>
+              <div className="space-y-4 pt-4 lg:pt-0">
             {select("category", "Category", facets.categories.filter((c) => c._count.courses > 0).map((c) => [c.slug, `${c.name} (${c._count.courses})`]))}
             {select("department", "Department", facets.departments.map((d) => [d.id, d.name]))}
             {select("competency", "Competency", facets.competencies.map((c) => [c.id, `${c.code} ${c.name}`]))}
@@ -50,9 +58,11 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
             <label className="flex items-center gap-2 font-sans text-sm">
               <input type="checkbox" name="cpd" value="yes" defaultChecked={sp.cpd === "yes"} className="h-4 w-4 accent-[rgb(22,38,68)]" /> CPD-eligible only
             </label>
+              </div>
+            </details>
             <input type="hidden" name="sort" value={sp.sort ?? ""} />
             <div className="flex gap-2">
-              <button type="submit" className="inline-flex h-9 flex-1 items-center justify-center rounded bg-navy px-3 font-sans text-sm font-medium text-white hover:bg-navy-700">Apply filters</button>
+              <button type="submit" className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-navy px-4 font-sans text-sm font-semibold text-white hover:bg-navy-700">Apply filters</button>
               {active.length > 0 && <LinkButton href="/catalogue" variant="secondary">Clear</LinkButton>}
             </div>
           </form>
