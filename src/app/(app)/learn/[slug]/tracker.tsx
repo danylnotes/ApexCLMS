@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { heartbeat } from "../../learner-actions";
+import { useI18n } from "@/i18n/client";
 
 /**
  * Records time on a lesson while the page is visible (30-second heartbeats; server caps each beat).
@@ -34,6 +35,7 @@ export function LessonTracker({ lessonId, enabled }: { lessonId: string; enabled
 }
 
 export function TrackedVideo({ lessonId, src, start }: { lessonId: string; src: string; start: number | null }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLVideoElement>(null);
   const lastSent = useRef(0);
   return (
@@ -53,7 +55,7 @@ export function TrackedVideo({ lessonId, src, start }: { lessonId: string; src: 
         heartbeat(lessonId, 0, v.currentTime).catch(() => undefined);
       }}
     >
-      Your browser does not support embedded video. <a href={src}>Open the video</a>.
+      {t("Your browser does not support embedded video.")} <a href={src}>{t("Open the video")}</a>.
     </video>
   );
 }

@@ -5,6 +5,8 @@ import { mandatoryState, summarizeCompliance } from "@/lib/domain/compliance";
 import { evaluateHealth, type HealthInputs } from "@/lib/domain/health";
 import { buildProfile } from "./competency";
 import { cpdWorkspace } from "./cpd";
+import { tr } from "@/i18n/active";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 
 /**
  * Assembles an individual's development overview from persisted records.
@@ -177,23 +179,23 @@ export function developmentPriorities(o: EmployeeOverview) {
   const now = o.computedAt;
   for (const a of o.mandatory) {
     const st = mandatoryState(a, now);
-    if (st === "OVERDUE" && a.course) items.push({ rank: 0, title: `Complete overdue mandatory training: ${a.course.title}`, reason: `Due ${a.dueDate!.toISOString().slice(0, 10)}`, href: `/courses/${a.course.slug}`, tone: "crit" });
-    else if (st === "DUE_SOON" && a.course) items.push({ rank: 1, title: `Complete mandatory training: ${a.course.title}`, reason: `Due ${a.dueDate!.toISOString().slice(0, 10)}`, href: `/courses/${a.course.slug}`, tone: "warn" });
+    if (st === "OVERDUE" && a.course) items.push({ rank: 0, title: tr("Complete overdue mandatory training: {course}", { course: a.course.title }), reason: tr("Due {date}", { date: fmtDate(a.dueDate) }), href: `/courses/${a.course.slug}`, tone: "crit" });
+    else if (st === "DUE_SOON" && a.course) items.push({ rank: 1, title: tr("Complete mandatory training: {course}", { course: a.course.title }), reason: tr("Due {date}", { date: fmtDate(a.dueDate) }), href: `/courses/${a.course.slug}`, tone: "warn" });
   }
   for (const r of o.continueLearning.slice(0, 2)) {
-    if (r.percent > 0 && r.percent < 100) items.push({ rank: 2, title: `Finish the remaining lessons in ${r.course.title}`, reason: `${r.completedLessons} of ${r.totalLessons} required lessons completed`, href: `/learn/${r.course.slug}`, tone: "info" });
+    if (r.percent > 0 && r.percent < 100) items.push({ rank: 2, title: tr("Finish the remaining lessons in {course}", { course: r.course.title }), reason: tr("{completed} of {total} required lessons completed", { completed: r.completedLessons, total: r.totalLessons }), href: `/learn/${r.course.slug}`, tone: "info" });
   }
   for (const row of o.competency.rows.filter((r) => r.evaluation && r.evaluation.gap > 0).slice(0, 2)) {
     const e = row.evaluation!;
-    if (e.knowledgeOnly) items.push({ rank: 3, title: `Request a workplace assessment for ${row.competency.name}`, reason: "Knowledge evidence recorded; demonstration not yet assessed", href: "/competencies", tone: "warn" });
-    else if (e.status === "EXPIRED") items.push({ rank: 2, title: `Arrange reassessment: ${row.competency.name}`, reason: "Reassessment date has passed", href: "/competencies", tone: "crit" });
-    else if (row.recommended[0]) items.push({ rank: 3, title: `Develop ${row.competency.name}: ${row.recommended[0].title}`, reason: `Gap of ${e.gap} level${e.gap > 1 ? "s" : ""} to role requirement`, href: `/courses/${row.recommended[0].slug}`, tone: "warn" });
+    if (e.knowledgeOnly) items.push({ rank: 3, title: tr("Request a workplace assessment for {competency}", { competency: row.competency.name }), reason: tr("Knowledge evidence recorded; demonstration not yet assessed"), href: "/competencies", tone: "warn" });
+    else if (e.status === "EXPIRED") items.push({ rank: 2, title: tr("Arrange reassessment: {competency}", { competency: row.competency.name }), reason: tr("Reassessment date has passed"), href: "/competencies", tone: "crit" });
+    else if (row.recommended[0]) items.push({ rank: 3, title: tr("Develop {competency}: {course}", { competency: row.competency.name, course: row.recommended[0].title }), reason: tr("Gap of {count, plural, one {# level} other {# levels}} to role requirement", { count: e.gap }), href: `/courses/${row.recommended[0].slug}`, tone: "warn" });
   }
   for (const r of o.registrations.slice(0, 1)) {
-    items.push({ rank: 4, title: `Attend: ${r.webinar.title}`, reason: r.webinar.startsAt.toUTCString().slice(0, 22), href: `/webinars/${r.webinar.slug}`, tone: "info" });
+    items.push({ rank: 4, title: tr("Attend: {webinar}", { webinar: r.webinar.title }), reason: fmtDateTime(r.webinar.startsAt), href: `/webinars/${r.webinar.slug}`, tone: "info" });
   }
-  for (const p of o.paths) if (p.next && p.percent < 100) items.push({ rank: 4, title: `Next on ${p.path.title}: ${p.next.title}`, reason: `${p.done} of ${p.total} required courses completed`, href: `/courses/${p.next.slug}`, tone: "info" });
+  for (const p of o.paths) if (p.next && p.percent < 100) items.push({ rank: 4, title: tr("Next on {path}: {course}", { path: p.path.title, course: p.next.title }), reason: tr("{completed} of {total} required courses completed", { completed: p.done, total: p.total }), href: `/courses/${p.next.slug}`, tone: "info" });
   const career = o.health.find((h) => h.key === "career");
-  if (career && career.status !== "ON_TRACK" && career.nextAction) items.push({ rank: 5, title: career.nextAction.label, reason: career.gaps[0] ?? "Career development", href: career.nextAction.href, tone: "info" });
+  if (career && career.status !== "ON_TRACK" && career.nextAction) items.push({ rank: 5, title: career.nextAction.label, reason: career.gaps[0] ?? tr("Career development"), href: career.nextAction.href, tone: "info" });
   return items.sort((a, b) => a.rank - b.rank).slice(0, 7);
 }

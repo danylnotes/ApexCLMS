@@ -12,8 +12,12 @@ import { fmtDate, fmtDateTime, fmtHours, fmtMinutes, fmtNum, fmtRelative } from 
 import { mandatoryState } from "@/lib/domain/compliance";
 import { MANDATORY } from "@/lib/status";
 import { COMPLIANCE_METHOD } from "@/lib/domain/compliance";
+import { getI18n } from "@/i18n/server";
 
-export const metadata = { title: "Dashboard" };
+export async function generateMetadata() {
+  const { t } = await getI18n();
+  return { title: t("Dashboard") };
+}
 
 const ACTIVITY_LABEL: Record<string, string> = {
   COURSE_COMPLETED: "Course completed",
@@ -37,6 +41,7 @@ const WEEKS = 8;
 
 export default async function DashboardPage() {
   const actor = await requireActor();
+  const { t } = await getI18n();
   const o = await employeeOverview(actor.id);
   const priorities = developmentPriorities(o);
   const weekMs = 7 * 86_400_000;
@@ -56,7 +61,6 @@ export default async function DashboardPage() {
   ]);
   const p = o.profile;
   const year = o.computedAt.getUTCFullYear();
-  const unitLabel = o.metrics.cpdUnit === "POINTS" ? "points" : "hours";
   const upcomingDeadlines = o.assignments.filter((a) => a.status === "ASSIGNED" && a.dueDate).slice(0, 5);
   const firstName = actor.name.replace(/^(Dr|Mr|Ms|Mrs|Prof)\.?\s+/i, "").split(" ")[0];
   const newForYou = discover.items.filter((c) => !c.enrolmentStatus).slice(0, 3);
@@ -73,7 +77,7 @@ export default async function DashboardPage() {
     const w = weeks.find((x) => at > x.start && at <= x.end);
     if (w) w.value += s.timeSpentSeconds / 3600;
   }
-  const bars = weeks.map((w, i) => ({ label: i === WEEKS - 1 ? "Now" : `${w.end.getUTCDate()}/${w.end.getUTCMonth() + 1}`, full: `Week ending ${fmtDate(w.end)}`, value: Math.round(w.value * 10) / 10 }));
+  const bars = weeks.map((w, i) => ({ label: i === WEEKS - 1 ? t("Now") : `${w.end.getUTCDate()}/${w.end.getUTCMonth() + 1}`, full: t("Week ending {date}", { date: fmtDate(w.end) }), value: Math.round(w.value * 10) / 10 }));
   const peak = bars.reduce((best, b, i) => (b.value > bars[best].value ? i : best), WEEKS - 1);
   const totalHours = bars.reduce((sum, b) => sum + b.value, 0);
 
@@ -83,8 +87,8 @@ export default async function DashboardPage() {
     ...o.registrations.map((r) => ({ date: r.webinar.startsAt, tone: "info" as const })),
   ];
   const schedule = [
-    ...o.registrations.map((r) => ({ key: r.id, kind: "Webinar", title: r.webinar.title, when: fmtDateTime(r.webinar.startsAt, r.webinar.timeZone), href: `/webinars/${r.webinar.slug}`, at: r.webinar.startsAt, note: r.status === "WAITLISTED" ? "Waitlisted" : null })),
-    ...upcomingDeadlines.map((a) => ({ key: a.id, kind: a.isMandatory ? "Mandatory deadline" : "Deadline", title: a.course?.title ?? a.path?.title ?? "", when: `Due ${fmtDate(a.dueDate)}`, href: a.course ? `/courses/${a.course.slug}` : `/learning-paths/${a.path?.slug}`, at: a.dueDate!, note: null })),
+    ...o.registrations.map((r) => ({ key: r.id, kind: t("Webinar"), webinar: true, title: r.webinar.title, when: fmtDateTime(r.webinar.startsAt, r.webinar.timeZone), href: `/webinars/${r.webinar.slug}`, at: r.webinar.startsAt, note: r.status === "WAITLISTED" ? t("Waitlisted") : null })),
+    ...upcomingDeadlines.map((a) => ({ key: a.id, kind: a.isMandatory ? t("Mandatory deadline") : t("Deadline"), webinar: false, title: a.course?.title ?? a.path?.title ?? "", when: t("Due {date}", { date: fmtDate(a.dueDate) }), href: a.course ? `/courses/${a.course.slug}` : `/learning-paths/${a.path?.slug}`, at: a.dueDate!, note: null })),
   ].sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, 5);
 
   const targetSummary = o.target?.rows.length ? o.target.summary : null;
@@ -94,20 +98,20 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       {/* Welcome banner */}
       <section aria-labelledby="welcome" className="relative overflow-hidden rounded-[28px] bg-navy px-5 py-6 text-white sm:px-8 sm:py-7">
-        <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-lime/20 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -end-16 -top-24 h-72 w-72 rounded-full bg-lime/20 blur-3xl" />
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
-            <p className="font-sans text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-lime">Your development overview · {o.cpd.period?.name ?? year} development period</p>
-            <h1 id="welcome" className="mt-2 font-sans text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-white md:text-[2rem]">Welcome back, {firstName}</h1>
-            <p className="mt-2 max-w-2xl text-[0.9375rem] text-white/70">Track your learning, strengthen your technical competencies, and prepare for your next career milestone.</p>
+            <p className="font-sans text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-lime">{t("Your development overview · {period} development period", { period: o.cpd.period?.name ?? year })}</p>
+            <h1 id="welcome" className="mt-2 font-sans text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-white md:text-[2rem]">{t("Welcome back, {name}", { name: firstName })}</h1>
+            <p className="mt-2 max-w-2xl text-[0.9375rem] text-white/70">{t("Track your learning, strengthen your technical competencies, and prepare for your next career milestone.")}</p>
             <dl className="mt-4 flex flex-wrap gap-2 font-sans text-[0.75rem]">
               {[
-                ["Staff ID", access.staffId],
-                ["Role", p?.jobRole?.title],
-                ["Department", p?.department?.name],
-                ["Business unit", p?.businessUnit?.name],
-                ["Programme", p?.learningProgramme],
-                ["Target role", p?.targetJobRole?.title],
+                [t("Staff ID"), access.staffId],
+                [t("Role"), p?.jobRole?.title],
+                [t("Department"), p?.department?.name],
+                [t("Business unit"), p?.businessUnit?.name],
+                [t("Programme"), p?.learningProgramme],
+                [t("Target role"), p?.targetJobRole?.title],
               ].map(([k, v], i) => (
                 <div key={k} className={`gap-1.5 rounded-full bg-white/10 px-3 py-1.5 ${i >= 2 && i <= 4 ? "hidden sm:flex" : "flex"}`}>
                   <dt className="text-white/55">{k}</dt>
@@ -117,13 +121,13 @@ export default async function DashboardPage() {
             </dl>
           </div>
           <div className="flex shrink-0 items-center gap-4 rounded-3xl bg-white/[0.07] p-4">
-            <ProgressRing value={o.metrics.overallPercent ?? 0} size={92} stroke={9} tone="light" label="Overall learning progress">
+            <ProgressRing value={o.metrics.overallPercent ?? 0} size={92} stroke={9} tone="light" label={t("Overall learning progress")}>
               {o.metrics.overallPercent == null ? "—" : `${o.metrics.overallPercent}%`}
             </ProgressRing>
             <div className="font-sans">
-              <p className="text-[0.75rem] text-white/60">Overall progress</p>
-              <p className="text-sm font-semibold">{o.courseRows.length} enrolment{o.courseRows.length === 1 ? "" : "s"}</p>
-              <LinkButton href="/my-learning" variant="accent" size="sm" className="mt-2">My learning</LinkButton>
+              <p className="text-[0.75rem] text-white/60">{t("Overall progress")}</p>
+              <p className="text-sm font-semibold">{t("{count, plural, one {# enrolment} other {# enrolments}}", { count: o.courseRows.length })}</p>
+              <LinkButton href="/my-learning" variant="accent" size="sm" className="mt-2">{t("My learning")}</LinkButton>
             </div>
           </div>
         </div>
@@ -131,15 +135,15 @@ export default async function DashboardPage() {
 
       {/* Personal learning summary */}
       <section aria-labelledby="summary">
-        <h2 id="summary" className="sr-only">Personal learning summary</h2>
+        <h2 id="summary" className="sr-only">{t("Personal learning summary")}</h2>
         <dl className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
-          <StatCard chip={0} icon={<Gauge className="h-5 w-5" />} label="Overall learning progress" value={o.metrics.overallPercent == null ? "—" : `${o.metrics.overallPercent}%`} context={`across ${o.courseRows.length} enrolment${o.courseRows.length === 1 ? "" : "s"}`} definition="Average completion of required lessons across all your active and completed enrolments." />
-          <StatCard chip={2} icon={<BookCheck className="h-5 w-5" />} label="Courses completed" value={o.metrics.coursesCompleted} context={`total · ${o.metrics.coursesCompletedThisYear} in ${year}`} definition="Courses whose completion rules you have satisfied. Cumulative total, with the current calendar year shown separately." />
-          <StatCard chip={3} icon={<BookOpen className="h-5 w-5" />} label="Courses in progress" value={o.metrics.coursesInProgress} context="active now" definition="Enrolments that are active and not yet completed." />
-          <StatCard chip={1} icon={<Award className="h-5 w-5" />} label={`CPD ${unitLabel} approved`} value={o.metrics.cpdApproved == null ? "—" : fmtNum(o.metrics.cpdApproved)} context={o.metrics.cpdTarget != null ? `of ${o.metrics.cpdTarget} target · ${o.cpd.period?.name}` : o.cpd.policy ? "no target set" : "no CPD policy"} definition="Approved CPD claims in the current reporting period only. Pending and rejected claims are excluded." />
-          <StatCard chip={0} icon={<Presentation className="h-5 w-5" />} label="Webinars attended" value={o.metrics.webinarsAttended} context={`total · ${o.metrics.webinarsAttendedThisYear} in ${year}`} definition="Webinars with a recorded attendance. Registration alone does not count." />
-          <StatCard chip={1} icon={<ShieldCheck className="h-5 w-5" />} label="Mandatory compliance" value={o.metrics.compliancePercent == null ? "—" : `${o.metrics.compliancePercent}%`} context={o.compliance.overdue ? `${o.compliance.overdue} overdue` : o.compliance.total ? `${o.compliance.completed}/${o.compliance.total} complete` : "none assigned"} tone={o.compliance.overdue ? "crit" : o.compliance.dueSoon ? "warn" : undefined} definition={COMPLIANCE_METHOD} />
-          <StatCard chip={2} icon={<Target className="h-5 w-5" />} label="Competency coverage" value={o.metrics.competencyCoverage == null ? "—" : `${o.metrics.competencyCoverage}%`} context={o.competency.rows.length ? `${o.competency.summary.met}/${o.competency.summary.required} role requirements` : "no role requirements"} definition="Competency requirements of your current role met at the required level by a current, demonstrated assessment. Knowledge-only evidence (e.g. course completion) does not count under the current framework." />
+          <StatCard chip={0} icon={<Gauge className="h-5 w-5" />} label={t("Overall learning progress")} value={o.metrics.overallPercent == null ? "—" : `${o.metrics.overallPercent}%`} context={t("{count, plural, one {across # enrolment} other {across # enrolments}}", { count: o.courseRows.length })} definition={t("Average completion of required lessons across all your active and completed enrolments.")} />
+          <StatCard chip={2} icon={<BookCheck className="h-5 w-5" />} label={t("Courses completed")} value={o.metrics.coursesCompleted} context={t("total · {count} in {year}", { count: o.metrics.coursesCompletedThisYear, year })} definition={t("Courses whose completion rules you have satisfied. Cumulative total, with the current calendar year shown separately.")} />
+          <StatCard chip={3} icon={<BookOpen className="h-5 w-5" />} label={t("Courses in progress")} value={o.metrics.coursesInProgress} context={t("active now")} definition={t("Enrolments that are active and not yet completed.")} />
+          <StatCard chip={1} icon={<Award className="h-5 w-5" />} label={o.metrics.cpdUnit === "POINTS" ? t("CPD points approved") : t("CPD hours approved")} value={o.metrics.cpdApproved == null ? "—" : fmtNum(o.metrics.cpdApproved)} context={o.metrics.cpdTarget != null ? t("of {target} target · {period}", { target: o.metrics.cpdTarget, period: o.cpd.period?.name ?? "" }) : o.cpd.policy ? t("no target set") : t("no CPD policy")} definition={t("Approved CPD claims in the current reporting period only. Pending and rejected claims are excluded.")} />
+          <StatCard chip={0} icon={<Presentation className="h-5 w-5" />} label={t("Webinars attended")} value={o.metrics.webinarsAttended} context={t("total · {count} in {year}", { count: o.metrics.webinarsAttendedThisYear, year })} definition={t("Webinars with a recorded attendance. Registration alone does not count.")} />
+          <StatCard chip={1} icon={<ShieldCheck className="h-5 w-5" />} label={t("Mandatory compliance")} value={o.metrics.compliancePercent == null ? "—" : `${o.metrics.compliancePercent}%`} context={o.compliance.overdue ? t("{count} overdue", { count: o.compliance.overdue }) : o.compliance.total ? t("{done}/{total} complete", { done: o.compliance.completed, total: o.compliance.total }) : t("none assigned")} tone={o.compliance.overdue ? "crit" : o.compliance.dueSoon ? "warn" : undefined} definition={t(COMPLIANCE_METHOD)} />
+          <StatCard chip={2} icon={<Target className="h-5 w-5" />} label={t("Competency coverage")} value={o.metrics.competencyCoverage == null ? "—" : `${o.metrics.competencyCoverage}%`} context={o.competency.rows.length ? t("{met}/{required} role requirements", { met: o.competency.summary.met, required: o.competency.summary.required }) : t("no role requirements")} definition={t("Competency requirements of your current role met at the required level by a current, demonstrated assessment. Knowledge-only evidence (e.g. course completion) does not count under the current framework.")} />
         </dl>
       </section>
 
@@ -149,13 +153,13 @@ export default async function DashboardPage() {
           <section aria-labelledby="new-h">
             <div className="mb-3 flex items-end justify-between gap-3">
               <div>
-                <h2 id="new-h" className="type-section">New for your job title</h2>
-                <p className="type-meta">Recently published courses within your access{access.allContent ? " (all content)" : access.grants.length ? ` (${access.grants.map((g) => g.jobRole.title).join(", ")})` : " (open courses only)"}.</p>
+                <h2 id="new-h" className="type-section">{t("New for your job title")}</h2>
+                <p className="type-meta">{access.allContent ? t("Recently published courses within your access (all content).") : access.grants.length ? t("Recently published courses within your access ({levels}).", { levels: access.grants.map((g) => g.jobRole.title).join(", ") }) : t("Recently published courses within your access (open courses only).")}</p>
               </div>
-              <LinkButton href="/catalogue" variant="ghost" size="sm">View all</LinkButton>
+              <LinkButton href="/catalogue" variant="ghost" size="sm">{t("View all")}</LinkButton>
             </div>
             {newForYou.length === 0 ? (
-              <EmptyState title="You are enrolled on everything new">Browse the catalogue for more courses open to your job title.</EmptyState>
+              <EmptyState title={t("You are enrolled on everything new")}>{t("Browse the catalogue for more courses open to your job title.")}</EmptyState>
             ) : (
               <ul className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:pb-0">
                 {newForYou.map((c, i) => (
@@ -167,8 +171,8 @@ export default async function DashboardPage() {
                     <p className="mt-4 font-sans text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-ink-muted">{c.category.name}</p>
                     <Link href={`/courses/${c.slug}`} className="mt-1 font-sans text-[1rem] font-bold leading-snug text-ink no-underline after:absolute after:inset-0 hover:underline">{c.title}</Link>
                     <div className="mt-auto flex items-center justify-between pt-4 font-sans text-[0.75rem] text-ink-muted">
-                      <span>{fmtHours(c.estimatedHours.toString())}{c.cpdEligible ? " · CPD" : ""}{c.isMandatory ? " · Mandatory" : ""}</span>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-lime transition-transform group-hover:rotate-45" aria-hidden><ArrowUpRight className="h-4 w-4" /></span>
+                      <span>{fmtHours(c.estimatedHours.toString())}{c.cpdEligible ? ` · ${t("CPD")}` : ""}{c.isMandatory ? ` · ${t("Mandatory")}` : ""}</span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-navy text-lime transition-transform group-hover:rotate-45" aria-hidden><ArrowUpRight className="h-4 w-4 rtl:-scale-x-100" /></span>
                     </div>
                   </li>
                 ))}
@@ -178,25 +182,25 @@ export default async function DashboardPage() {
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] [&>*]:min-w-0">
             {/* Study hours */}
-            <Panel id="hours" title="Study hours" description={`${totalHours.toFixed(1)} h of lesson time in the last ${WEEKS} weeks`} actions={<span className="flex h-9 w-9 items-center justify-center rounded-full bg-canvas text-ink" aria-hidden><TrendingUp className="h-4 w-4" /></span>}>
-              <BarChart data={bars} highlight={peak} unit="h" />
+            <Panel id="hours" title={t("Study hours")} description={t("{hours} h of lesson time in the last {weeks} weeks", { hours: totalHours.toFixed(1), weeks: WEEKS })} actions={<span className="flex h-9 w-9 items-center justify-center rounded-full bg-canvas text-ink" aria-hidden><TrendingUp className="h-4 w-4" /></span>}>
+              <BarChart data={bars} highlight={peak} unit={t("h")} />
             </Panel>
 
             {/* Schedule */}
-            <Panel id="upcoming" title="Upcoming schedule" actions={<LinkButton href="/webinars" variant="ghost" size="sm">Webinars</LinkButton>} bodyClassName="px-3 pb-3 pt-2">
+            <Panel id="upcoming" title={t("Upcoming schedule")} actions={<LinkButton href="/webinars" variant="ghost" size="sm">{t("Webinars")}</LinkButton>} bodyClassName="px-3 pb-3 pt-2">
               {schedule.length === 0 ? (
-                <p className="px-3 type-meta">No upcoming registrations or deadlines. <Link href="/webinars">Browse webinars</Link></p>
+                <p className="px-3 type-meta">{t("No upcoming registrations or deadlines.")} <Link href="/webinars">{t("Browse webinars")}</Link></p>
               ) : (
                 <ul className="space-y-1">
                   {schedule.map((e, i) => (
                     <li key={e.key}>
                       <Link href={e.href} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 no-underline hover:bg-canvas">
-                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-navy ${chipClass(i + 1)}`} aria-hidden>{e.kind === "Webinar" ? <Presentation className="h-[18px] w-[18px]" /> : <CalendarClock className="h-[18px] w-[18px]" />}</span>
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-navy ${chipClass(i + 1)}`} aria-hidden>{e.webinar ? <Presentation className="h-[18px] w-[18px]" /> : <CalendarClock className="h-[18px] w-[18px]" />}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-sans text-[0.8125rem] font-semibold text-ink">{e.title}</span>
                           <span className="block truncate font-sans text-[0.75rem] text-ink-faint">{e.kind} · {e.when}{e.note ? ` · ${e.note}` : ""}</span>
                         </span>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-ink-faint" aria-hidden />
+                        <ChevronRight className="h-4 w-4 shrink-0 text-ink-faint rtl:-scale-x-100" aria-hidden />
                       </Link>
                     </li>
                   ))}
@@ -206,10 +210,10 @@ export default async function DashboardPage() {
           </div>
 
           {/* Continue learning */}
-          <Panel id="continue" title="Courses you're taking" description="Active courses, prioritising those approaching their due date." actions={<LinkButton href="/my-learning" variant="ghost" size="sm">All learning</LinkButton>} bodyClassName="px-3 pb-3 pt-2">
+          <Panel id="continue" title={t("Courses you're taking")} description={t("Active courses, prioritising those approaching their due date.")} actions={<LinkButton href="/my-learning" variant="ghost" size="sm">{t("All learning")}</LinkButton>} bodyClassName="px-3 pb-3 pt-2">
             {o.continueLearning.length === 0 ? (
               <div className="p-3">
-                <EmptyState title="No courses in progress" action={<LinkButton href="/catalogue" variant="secondary" size="sm">Browse the catalogue</LinkButton>}>
+                <EmptyState title={t("No courses in progress")} action={<LinkButton href="/catalogue" variant="secondary" size="sm">{t("Browse the catalogue")}</LinkButton>}>
                   Enrol in a course or start an assigned course to see it here.
                 </EmptyState>
               </div>
@@ -223,18 +227,18 @@ export default async function DashboardPage() {
                         {r.course.title}
                       </Link>
                       <p className="mt-0.5 truncate type-meta">
-                        {r.course.code} · {r.course.instructors[0]?.user.name ?? r.course.provider} · Last accessed {fmtRelative(r.enrollment.lastAccessedAt)}
+                        {r.course.code} · {r.course.instructors[0]?.user.name ?? r.course.provider} · {t("Last accessed {when}", { when: fmtRelative(r.enrollment.lastAccessedAt) })}
                         {r.enrollment.dueDate && (
                           <>
                             {" · "}
-                            <span className={r.enrollment.dueDate < o.computedAt ? "font-semibold text-crit" : ""}>Due {fmtDate(r.enrollment.dueDate)}</span>
+                            <span className={r.enrollment.dueDate < o.computedAt ? "font-semibold text-crit" : ""}>{t("Due {date}", { date: fmtDate(r.enrollment.dueDate) })}</span>
                           </>
                         )}
                       </p>
-                      <p className="type-meta">{r.remainingMinutes != null ? `${fmtMinutes(r.remainingMinutes)} remaining` : `${r.completedLessons}/${r.totalLessons} lessons`}</p>
+                      <p className="type-meta">{r.remainingMinutes != null ? t("{time} remaining", { time: fmtMinutes(r.remainingMinutes) }) : t("{done}/{total} lessons", { done: r.completedLessons, total: r.totalLessons })}</p>
                     </div>
-                    <ProgressRing value={r.percent} label={`${r.course.title} progress`} />
-                    <LinkButton href={`/learn/${r.course.slug}`} variant="primary" size="sm">Continue</LinkButton>
+                    <ProgressRing value={r.percent} label={t("{title} progress", { title: r.course.title })} />
+                    <LinkButton href={`/learn/${r.course.slug}`} variant="primary" size="sm">{t("Continue")}</LinkButton>
                   </li>
                 ))}
               </ul>
@@ -242,23 +246,23 @@ export default async function DashboardPage() {
           </Panel>
 
           {/* Career Development Health */}
-          <Panel id="health" title="Career Development Health" description="Five evidence-based dimensions of your development. Each shows its status, evidence, gaps and next step." actions={<LinkButton href="/career" variant="ghost" size="sm">Full analysis</LinkButton>}>
+          <Panel id="health" title={t("Career Development Health")} description={t("Five evidence-based dimensions of your development. Each shows its status, evidence, gaps and next step.")} actions={<LinkButton href="/career" variant="ghost" size="sm">{t("Full analysis")}</LinkButton>}>
             <HealthTable dimensions={o.health} computedAt={o.computedAt} />
           </Panel>
 
           {/* Timeline */}
-          <Panel id="timeline" title="Learning activity" description="Recent milestones in your development record." actions={<LinkButton href="/history" variant="ghost" size="sm">Learning history</LinkButton>}>
+          <Panel id="timeline" title={t("Learning activity")} description={t("Recent milestones in your development record.")} actions={<LinkButton href="/history" variant="ghost" size="sm">{t("Learning history")}</LinkButton>}>
             {timeline.length === 0 ? (
-              <p className="type-meta">No activity recorded yet.</p>
+              <p className="type-meta">{t("No activity recorded yet.")}</p>
             ) : (
-              <ol className="relative ml-1.5 border-l-2 border-canvas">
-                {timeline.map((t) => (
-                  <li key={t.id} className="relative pb-4 pl-5 last:pb-0">
-                    <span aria-hidden className="absolute -left-[6px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-lime-600" />
+              <ol className="relative ms-1.5 border-s-2 border-canvas">
+                {timeline.map((ev) => (
+                  <li key={ev.id} className="relative pb-4 ps-5 last:pb-0">
+                    <span aria-hidden className="absolute -start-[6px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-lime-600" />
                     <p className="font-sans text-[0.75rem] text-ink-faint">
-                      <time dateTime={t.occurredAt.toISOString()}>{fmtDate(t.occurredAt)}</time> · {ACTIVITY_LABEL[t.type] ?? t.type}
+                      <time dateTime={ev.occurredAt.toISOString()}>{fmtDate(ev.occurredAt)}</time> · {ACTIVITY_LABEL[ev.type] ? t(ACTIVITY_LABEL[ev.type]) : ev.type}
                     </p>
-                    <p className="text-[0.9rem] text-ink">{t.summary}</p>
+                    <p className="text-[0.9rem] text-ink">{ev.summary}</p>
                   </li>
                 ))}
               </ol>
@@ -269,35 +273,35 @@ export default async function DashboardPage() {
         <aside className="min-w-0 space-y-6">
           {/* Next level */}
           <section aria-labelledby="next-h" className="relative overflow-hidden rounded-[28px] bg-navy p-6 text-white">
-            <div aria-hidden className="pointer-events-none absolute -bottom-20 -right-10 h-48 w-48 rounded-full bg-lime/25 blur-2xl" />
-            <p className="relative font-sans text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-lime">Next career level</p>
-            <h2 id="next-h" className="relative mt-2 font-sans text-xl font-extrabold leading-snug text-white">{p?.targetJobRole?.title ?? "Set a target role"}</h2>
+            <div aria-hidden className="pointer-events-none absolute -bottom-20 -end-10 h-48 w-48 rounded-full bg-lime/25 blur-2xl" />
+            <p className="relative font-sans text-[0.75rem] font-semibold uppercase tracking-[0.08em] text-lime">{t("Next career level")}</p>
+            <h2 id="next-h" className="relative mt-2 font-sans text-xl font-extrabold leading-snug text-white">{p?.targetJobRole?.title ?? t("Set a target role")}</h2>
             <p className="relative mt-1.5 text-[0.8125rem] text-white/70">
               {targetSummary
-                ? `${targetSummary.met} of ${targetSummary.required} competency requirements met for the target role.`
+                ? t("{met} of {required} competency requirements met for the target role.", { met: targetSummary.met, required: targetSummary.required })
                 : p?.targetJobRole
-                  ? "No competency requirements are defined for the target role yet."
-                  : "Agree a target role in your development plan to see your readiness."}
+                  ? t("No competency requirements are defined for the target role yet.")
+                  : t("Agree a target role in your development plan to see your readiness.")}
             </p>
-            {targetSummary && <div className="relative mt-4"><Progress value={targetSummary.coveragePercent ?? 0} label="Target role readiness" tone="copper" /></div>}
+            {targetSummary && <div className="relative mt-4"><Progress value={targetSummary.coveragePercent ?? 0} label={t("Target role readiness")} tone="copper" /></div>}
             <p className="relative mt-4 rounded-2xl bg-white/10 px-3 py-2 font-sans text-[0.75rem] text-white/80">
-              {p?.targetJobRole ? (targetGranted ? "Content for this level is open to you." : "Content for this level opens when your administrator grants access.") : "Access to each level is decided by your administrator."}
+              {p?.targetJobRole ? (targetGranted ? t("Content for this level is open to you.") : t("Content for this level opens when your administrator grants access.")) : t("Access to each level is decided by your administrator.")}
             </p>
-            <LinkButton href="/career" variant="accent" size="sm" className="relative mt-4">View career path</LinkButton>
+            <LinkButton href="/career" variant="accent" size="sm" className="relative mt-4">{t("View career path")}</LinkButton>
           </section>
 
           <Panel id="calendar">
             <MiniCalendar today={o.computedAt} events={calendar} />
             <p className="mt-3 flex flex-wrap gap-3 font-sans text-[0.75rem] text-ink-faint">
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />Webinar</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden />Deadline</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-crit" aria-hidden />Overdue</span>
+              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-info" aria-hidden />{t("Webinar")}</span>
+              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-warn" aria-hidden />{t("Deadline")}</span>
+              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-crit" aria-hidden />{t("Overdue")}</span>
             </p>
           </Panel>
 
-          <Panel id="priorities" title="Development priorities" description="Ordered by urgency, from your requirements and gaps.">
+          <Panel id="priorities" title={t("Development priorities")} description={t("Ordered by urgency, from your requirements and gaps.")}>
             {priorities.length === 0 ? (
-              <p className="type-meta">No outstanding priorities. Review your development plan to set new goals.</p>
+              <p className="type-meta">{t("No outstanding priorities. Review your development plan to set new goals.")}</p>
             ) : (
               <ol className="space-y-3.5">
                 {priorities.map((pr, i) => (
@@ -315,9 +319,9 @@ export default async function DashboardPage() {
             )}
           </Panel>
 
-          <Panel id="assignments" title="Assignments" actions={<LinkButton href="/my-learning?tab=mandatory" variant="ghost" size="sm">See all</LinkButton>}>
+          <Panel id="assignments" title={t("Assignments")} actions={<LinkButton href="/my-learning?tab=mandatory" variant="ghost" size="sm">{t("See all")}</LinkButton>}>
             {upcomingDeadlines.length === 0 ? (
-              <p className="type-meta">No assigned deadlines.</p>
+              <p className="type-meta">{t("No assigned deadlines.")}</p>
             ) : (
               <ul className="space-y-3">
                 {upcomingDeadlines.map((a) => {
@@ -329,7 +333,7 @@ export default async function DashboardPage() {
                         <Link href={a.course ? `/courses/${a.course.slug}` : `/learning-paths/${a.path?.slug}`} className="font-sans text-[0.8125rem] font-semibold text-ink no-underline hover:underline">
                           {a.course?.title ?? a.path?.title}
                         </Link>
-                        <p className="type-meta">{a.isMandatory ? "Mandatory · " : ""}Due {fmtDate(a.dueDate)}</p>
+                        <p className="type-meta">{a.isMandatory ? `${t("Mandatory")} · ` : ""}{t("Due {date}", { date: fmtDate(a.dueDate) })}</p>
                       </div>
                       <Status tone={tone}>{label}</Status>
                     </li>
@@ -340,13 +344,13 @@ export default async function DashboardPage() {
           </Panel>
 
           {o.paths.length > 0 && (
-            <Panel id="paths" title="Learning paths">
+            <Panel id="paths" title={t("Learning paths")}>
               <ul className="space-y-4">
                 {o.paths.map((lp) => (
                   <li key={lp.enrolment.id}>
                     <Link href={`/learning-paths/${lp.path.slug}`} className="font-sans text-[0.8125rem] font-semibold text-ink no-underline hover:underline">{lp.path.title}</Link>
-                    <div className="mt-1"><Progress value={lp.percent} label={`${lp.path.title} progress`} size="sm" /></div>
-                    {lp.next && <p className="type-meta">Next: {lp.next.title}</p>}
+                    <div className="mt-1"><Progress value={lp.percent} label={t("{title} progress", { title: lp.path.title })} size="sm" /></div>
+                    {lp.next && <p className="type-meta">{t("Next: {title}", { title: lp.next.title })}</p>}
                   </li>
                 ))}
               </ul>

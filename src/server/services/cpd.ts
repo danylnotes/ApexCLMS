@@ -1,3 +1,4 @@
+import { translated } from "@/lib/status";
 import { Prisma, type CpdClaimStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../db";
@@ -10,7 +11,7 @@ import { recordActivity } from "./activity";
 import { assertCpdTransition, claimableValue, CpdTransitionError, summarizeCpd } from "@/lib/domain/cpd";
 import { currentPeriod } from "./periods";
 
-export const CPD_TYPE_LABEL: Record<string, string> = {
+export const CPD_TYPE_LABEL: Record<string, string>= translated({
   INTERNAL_COURSE: "Internal course",
   EXTERNAL_TRAINING: "External training",
   TECHNICAL_SEMINAR: "Technical seminar",
@@ -20,7 +21,7 @@ export const CPD_TYPE_LABEL: Record<string, string> = {
   PUBLICATION: "Research or technical publication",
   MENTORING: "Professional mentoring",
   OTHER: "Other approved activity",
-};
+}) as Record<string, string>;
 
 export const claimInputSchema = z.object({
   title: z.string().trim().min(4, "Enter an activity title").max(200),

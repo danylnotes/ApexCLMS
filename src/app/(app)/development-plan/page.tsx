@@ -8,10 +8,15 @@ import { Field, LinkButton, PageHeader, Panel, Status } from "@/components/ui";
 import { PLAN_STATUS_LABEL } from "@/lib/domain/plan";
 import { PLAN_TONE } from "@/lib/status";
 import { createPlanAction } from "../learner-actions";
+import { getI18n } from "@/i18n/server";
 
-export const metadata = { title: "Individual Development Plan" };
+export async function generateMetadata() {
+  const { t } = await getI18n();
+  return { title: t("Individual Development Plan") };
+}
 
 export default async function PlanPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const { t } = await getI18n();
   const actor = await requireActor();
   const { id } = await searchParams;
   const [plans, competencies, courses, roles, profile] = await Promise.all([
@@ -26,24 +31,24 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   return (
     <div>
       <PageHeader
-        eyebrow="Development"
-        title="Individual Development Plan"
-        description="Agree development objectives with your manager and track them through to completion."
-        actions={plan ? <LinkButton href={`/development-plan/print?id=${plan.id}`} variant="secondary">Printable plan</LinkButton> : null}
+        eyebrow={t("Development")}
+        title={t("Individual Development Plan")}
+        description={t("Agree development objectives with your manager and track them through to completion.")}
+        actions={plan ? <LinkButton href={`/development-plan/print?id=${plan.id}`} variant="secondary">{t("Printable plan")}</LinkButton> : null}
         meta={plan ? <><span>{plan.title}</span><Status tone={PLAN_TONE[plan.status]}>{PLAN_STATUS_LABEL[plan.status]}</Status></> : undefined}
       />
       {plans.length > 1 && (
-        <nav aria-label="Plans" className="mb-6 flex flex-wrap gap-2 font-sans text-[0.8125rem]">
+        <nav aria-label={t("Plans")} className="mb-6 flex flex-wrap gap-2 font-sans text-[0.8125rem]">
           {plans.map((p) => <a key={p.id} href={`/development-plan?id=${p.id}`} className={`rounded px-2 py-1 no-underline ${p.id === plan?.id ? "bg-navy-50 text-navy" : "text-ink-muted"}`}>{p.title}</a>)}
         </nav>
       )}
       {!open && (
-        <Panel title={plans.length ? "Start a new development plan" : "Create your development plan"} className="mb-8" description="Your plan is visible to you and your line manager. It is reviewed through: Draft → Employee Review → Manager Review → Agreed → In Progress → Completed.">
+        <Panel title={plans.length ? t("Start a new development plan") : t("Create your development plan")} className="mb-8" description={t("Your plan is visible to you and your line manager. It is reviewed through: Draft → Employee Review → Manager Review → Agreed → In Progress → Completed.")}>
           <ActionForm action={createPlanAction} className="grid gap-4 sm:grid-cols-2">
-            <Field label="Plan title" htmlFor="title" required><input id="title" name="title" required defaultValue={`${new Date().getFullYear()} Development Plan`} className="input-base" /></Field>
-            <Field label="Target role" htmlFor="targetJobRoleId"><select id="targetJobRoleId" name="targetJobRoleId" defaultValue={profile?.targetJobRoleId ?? ""} className="input-base"><option value="">Not set</option>{roles.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}</select></Field>
-            <div className="sm:col-span-2"><Field label="Career aspiration" htmlFor="careerAspiration"><textarea id="careerAspiration" name="careerAspiration" rows={2} className="input-base" /></Field></div>
-            <div><SubmitButton>Create plan</SubmitButton></div>
+            <Field label={t("Plan title")} htmlFor="title" required><input id="title" name="title" required defaultValue={t("{year} Development Plan", { year: new Date().getFullYear() })} className="input-base" /></Field>
+            <Field label={t("Target role")} htmlFor="targetJobRoleId"><select id="targetJobRoleId" name="targetJobRoleId" defaultValue={profile?.targetJobRoleId ?? ""} className="input-base"><option value="">{t("Not set")}</option>{roles.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}</select></Field>
+            <div className="sm:col-span-2"><Field label={t("Career aspiration")} htmlFor="careerAspiration"><textarea id="careerAspiration" name="careerAspiration" rows={2} className="input-base" /></Field></div>
+            <div><SubmitButton>{t("Create plan")}</SubmitButton></div>
           </ActionForm>
         </Panel>
       )}

@@ -13,6 +13,7 @@ import { formFile, saveFile } from "@/server/storage";
 import { prisma } from "@/server/db";
 import type { ActionState } from "@/lib/action-state";
 import type { PlanStatus } from "@prisma/client";
+import { getI18n } from "@/i18n/server";
 
 type A = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 
@@ -20,23 +21,26 @@ type A = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 
 export const enrolAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const e = await learning.enrol(actor, str(fd, "courseId"));
-    return e.status === "PENDING_APPROVAL" ? "Enrolment requested. Your line manager has been asked to approve it." : "You are enrolled.";
+    return e.status === "PENDING_APPROVAL" ? t("Enrolment requested. Your line manager has been asked to approve it.") : t("You are enrolled.");
   }, ["/courses/[slug]", "/my-learning", "/dashboard"]);
 
 export const withdrawAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await learning.withdraw(actor, str(fd, "courseId"));
-    return "You have withdrawn from the course.";
+    return t("You have withdrawn from the course.");
   }, ["/courses/[slug]", "/my-learning"]);
 
 export const completeLessonAction: A = async (_, fd) => {
   const res = await runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const out = await learning.completeLesson(actor, str(fd, "lessonId"));
-    return out.completed ? "Lesson complete — you have met all completion requirements for this course." : "Lesson marked complete.";
+    return out.completed ? t("Lesson complete — you have met all completion requirements for this course.") : t("Lesson marked complete.");
   });
   if (res.ok && str(fd, "next")) redirect(str(fd, "next"));
   revalidatePath("/learn/[slug]", "page");
@@ -45,14 +49,16 @@ export const completeLessonAction: A = async (_, fd) => {
 
 export const acknowledgeAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
-    if (!bool(fd, "confirm")) throw new (await import("@/server/errors")).AppError("VALIDATION", "Tick the box to confirm your acknowledgement.");
+    if (!bool(fd, "confirm")) throw new (await import("@/server/errors")).AppError("VALIDATION", t("Tick the box to confirm your acknowledgement."));
     await learning.acknowledge(actor, str(fd, "courseId"));
-    return "Acknowledgement recorded.";
+    return t("Acknowledgement recorded.");
   }, ["/learn/[slug]"]);
 
 export const submitAssessmentAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const assessmentId = str(fd, "assessmentId");
     const questions = await prisma.assessmentQuestion.findMany({ where: { assessmentId }, select: { id: true, type: true } });
@@ -63,19 +69,20 @@ export const submitAssessmentAction: A = async (_, fd) =>
       return { questionId: q.id, textAnswer: v };
     });
     const unanswered = answers.filter((a) => Object.values(a).some((x) => x === null)).length;
-    if (unanswered && !bool(fd, "allowBlank")) throw new (await import("@/server/errors")).AppError("VALIDATION", `${unanswered} question${unanswered > 1 ? "s are" : " is"} unanswered. Answer every question before submitting.`);
+    if (unanswered && !bool(fd, "allowBlank")) throw new (await import("@/server/errors")).AppError("VALIDATION", t("{count, plural, one {# question is} other {# questions are}} unanswered. Answer every question before submitting.", { count: unanswered }));
     const r = await learning.submitAssessment(actor, assessmentId, answers);
-    if (r.status === "PENDING_REVIEW") return "Submitted. Your short-answer responses will be reviewed by the instructor.";
-    return r.passed ? `Passed with ${r.percent}%.` : `You scored ${r.percent}%. Review the material and try again.`;
+    if (r.status === "PENDING_REVIEW") return t("Submitted. Your short-answer responses will be reviewed by the instructor.");
+    return r.passed ? t("Passed with {percent}%.", { percent: r.percent }) : t("You scored {percent}%. Review the material and try again.", { percent: r.percent });
   }, ["/learn/[slug]"]);
 
 export const submitAssignmentAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const f = formFile(fd, "file");
     const file = f ? await saveFile(f, "ASSIGNMENT_SUBMISSION", actor.id) : null;
     await learning.submitAssignment(actor, str(fd, "lessonId"), str(fd, "body"), file?.id ?? null);
-    return "Submitted for instructor review.";
+    return t("Submitted for instructor review.");
   }, ["/learn/[slug]"]);
 
 export async function heartbeat(lessonId: string, seconds: number, videoPosition?: number) {
@@ -85,32 +92,36 @@ export async function heartbeat(lessonId: string, seconds: number, videoPosition
 
 export const startPathAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await learning.startLearningPath(actor, str(fd, "pathId"));
-    return "Learning path started. Enrol in the first course to begin.";
+    return t("Learning path started. Enrol in the first course to begin.");
   }, ["/learning-paths/[slug]", "/dashboard"]);
 
 /* ───── Webinars ───── */
 
 export const registerWebinarAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const r = await webinars.register(actor, str(fd, "webinarId"));
-    return r.status === "WAITLISTED" ? "The session is full — you have been added to the waitlist." : "You are registered. A confirmation has been added to your notifications.";
+    return r.status === "WAITLISTED" ? t("The session is full — you have been added to the waitlist.") : t("You are registered. A confirmation has been added to your notifications.");
   }, ["/webinars/[slug]", "/webinars"]);
 
 export const cancelWebinarAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await webinars.cancelRegistration(actor, str(fd, "webinarId"));
-    return "Registration cancelled.";
+    return t("Registration cancelled.");
   }, ["/webinars/[slug]", "/webinars"]);
 
 export const webinarFeedbackAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await webinars.submitFeedback(actor, { webinarId: str(fd, "webinarId"), rating: str(fd, "rating"), relevance: str(fd, "relevance") || undefined, comments: str(fd, "comments") });
-    return "Thank you — your feedback has been recorded.";
+    return t("Thank you — your feedback has been recorded.");
   }, ["/webinars/[slug]"]);
 
 /* ───── CPD ───── */
@@ -148,6 +159,7 @@ export const createClaimAction: A = async (_, fd) => {
 
 export const claimOwnerAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const to = str(fd, "to");
     if (to === "DELETE") {
@@ -155,27 +167,29 @@ export const claimOwnerAction: A = async (_, fd) =>
       redirect("/cpd");
     }
     await cpd.ownerTransition(actor, str(fd, "claimId"), to as "SUBMITTED" | "DRAFT");
-    return to === "SUBMITTED" ? "Claim submitted for review." : "Claim returned to draft.";
+    return to === "SUBMITTED" ? t("Claim submitted for review.") : t("Claim returned to draft.");
   }, ["/cpd", "/cpd/[id]"]);
 
 /* ───── Competency ───── */
 
 export const requestCompetencyReviewAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const f = formFile(fd, "file");
     const file = f ? await saveFile(f, "COMPETENCY_EVIDENCE", actor.id) : null;
     await competency.requestReview(actor, { competencyId: str(fd, "competencyId"), requestedLevel: str(fd, "requestedLevel"), statement: str(fd, "statement") }, file?.id ?? null);
-    return "Review request sent to your line manager.";
+    return t("Review request sent to your line manager.");
   }, ["/competencies"]);
 
 /* ───── Development plan ───── */
 
 export const createPlanAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.createPlan(actor, { title: str(fd, "title"), careerAspiration: str(fd, "careerAspiration"), targetJobRoleId: optStr(fd, "targetJobRoleId") });
-    return "Development plan created. Add your objectives.";
+    return t("Development plan created. Add your objectives.");
   }, ["/development-plan"]);
 
 function objectiveInput(fd: FormData) {
@@ -197,60 +211,68 @@ function objectiveInput(fd: FormData) {
 
 export const saveObjectiveAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.upsertObjective(actor, str(fd, "planId"), optStr(fd, "objectiveId"), objectiveInput(fd));
-    return "Objective saved.";
+    return t("Objective saved.");
   }, ["/development-plan", "/manager/team/[userId]"]);
 
 export const deleteObjectiveAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.deleteObjective(actor, str(fd, "planId"), str(fd, "objectiveId"));
-    return "Objective removed.";
+    return t("Objective removed.");
   }, ["/development-plan"]);
 
 export const addPlanActionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.addAction(actor, str(fd, "planId"), { objectiveId: str(fd, "objectiveId"), title: str(fd, "title"), type: str(fd, "type"), courseId: optStr(fd, "courseId"), dueDate: optStr(fd, "dueDate") });
-    return "Action added.";
+    return t("Action added.");
   }, ["/development-plan"]);
 
 export const togglePlanActionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.toggleAction(actor, str(fd, "planId"), str(fd, "actionId"));
-    return "Updated.";
+    return t("Updated.");
   }, ["/development-plan"]);
 
 export const planTransitionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.transitionPlan(actor, str(fd, "planId"), str(fd, "to") as PlanStatus, optStr(fd, "comment"));
-    return "Plan status updated.";
+    return t("Plan status updated.");
   }, ["/development-plan", "/manager/team/[userId]", "/manager"]);
 
 export const planCommentAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.addComment(actor, str(fd, "planId"), str(fd, "body"), optStr(fd, "objectiveId"));
-    return "Comment added.";
+    return t("Comment added.");
   }, ["/development-plan", "/manager/team/[userId]"]);
 
 export const managerFeedbackAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await plans.setManagerFeedback(actor, str(fd, "planId"), str(fd, "objectiveId"), str(fd, "feedback"));
-    return "Feedback saved.";
+    return t("Feedback saved.");
   }, ["/manager/team/[userId]"]);
 
 /* ───── Notifications & profile ───── */
 
 export const markAllReadAction: A = async () =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     await prisma.notification.updateMany({ where: { userId: actor.id, readAt: null }, data: { readAt: new Date() } });
-    return "All notifications marked as read.";
+    return t("All notifications marked as read.");
   }, ["/notifications"]);
 
 export async function openNotification(fd: FormData) {

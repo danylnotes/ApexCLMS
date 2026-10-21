@@ -1,3 +1,4 @@
+import { safeStandardFont } from "../pdf-text";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "../db";
 import { notFound } from "../errors";
@@ -25,10 +26,10 @@ export async function renderCertificatePdf(actor: Actor, id: string) {
   doc.setTitle(`${t?.heading ?? "Certificate"} — ${c.course.title}`);
   doc.setAuthor(branding.organisationName);
   const page = doc.addPage([842, 595]);
-  const serif = await doc.embedFont(StandardFonts.TimesRoman);
-  const serifBold = await doc.embedFont(StandardFonts.TimesRomanBold);
-  const sans = await doc.embedFont(StandardFonts.Helvetica);
-  const sansBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const serif = safeStandardFont(await doc.embedFont(StandardFonts.TimesRoman));
+  const serifBold = safeStandardFont(await doc.embedFont(StandardFonts.TimesRomanBold));
+  const sans = safeStandardFont(await doc.embedFont(StandardFonts.Helvetica));
+  const sansBold = safeStandardFont(await doc.embedFont(StandardFonts.HelveticaBold));
   const { width, height } = page.getSize();
   page.drawRectangle({ x: 24, y: 24, width: width - 48, height: height - 48, borderColor: NAVY, borderWidth: 1.5 });
   page.drawRectangle({ x: 32, y: 32, width: width - 64, height: height - 64, borderColor: COPPER, borderWidth: 0.5 });

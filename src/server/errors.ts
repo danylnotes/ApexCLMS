@@ -17,6 +17,8 @@ export class AppError extends Error {
     public code: ErrorCode,
     message: string,
     public details?: Record<string, unknown>,
+    /** Translatable form of the message when it is built from parts: an English template and its values. */
+    public template?: { key: string; vars: Record<string, string> },
   ) {
     super(message);
   }
@@ -26,7 +28,7 @@ export class AppError extends Error {
 }
 
 export const forbidden = (msg = "You do not have permission to perform this action.") => new AppError("FORBIDDEN", msg);
-export const notFound = (what = "Record") => new AppError("NOT_FOUND", `${what} not found.`);
+export const notFound = (what = "Record") => new AppError("NOT_FOUND", `${what} not found.`, undefined, { key: "{what} not found.", vars: { what } });
 export const invalid = (msg: string, details?: Record<string, unknown>) => new AppError("VALIDATION", msg, details);
 export const conflict = (msg: string) => new AppError("CONFLICT", msg);
 

@@ -5,7 +5,7 @@
 <title>Sign in · Apex CLMS demo</title>
 <meta name="description" content="Read-only demonstration of Apex CLMS, a competency and learning management system, with fictional data.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
 :root{--ink:#181a1f;--muted:#62676f;--faint:#8c919a;--lime:#cfee5c;--canvas:#f3f3ee;--surface:#fff;--line:#d8d8cf;--crit:#c43030}
 *{box-sizing:border-box}
@@ -41,6 +41,11 @@ h1{margin:0;font-weight:800;font-size:44px;line-height:1.05;letter-spacing:-.03e
 @media(min-width:1024px){.mhero{display:none}}
 .grab{width:48px;height:6px;border-radius:99px;background:var(--line);margin:0 auto 24px}
 @media(min-width:1024px){.grab{display:none}}
+.langs{display:flex;gap:4px;justify-content:flex-end;margin:0 0 20px}
+.langs a{border-radius:99px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;background:var(--canvas)}
+.langs a[aria-current]{background:var(--lime);color:var(--ink)}
+[dir=rtl] *{letter-spacing:0!important}
+[dir=rtl] body{font-family:"IBM Plex Sans Arabic","Plus Jakarta Sans",system-ui,sans-serif}
 .kicker{margin:0;color:#5c700e;font-weight:600;font-size:13px}
 h2{margin:4px 0 0;font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.15}
 .intro{color:var(--muted);margin:8px 0 0}
@@ -75,8 +80,8 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
       <div class="photo" style="background-image:url(login/plant-blue.jpg);background-position:center 40%"></div>
       <div class="shade"></div>
     </div>
-    <div class="top" style="position:relative"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small>Meridian Energy (fictional demo)</small></span></div></div>
-    <p class="headline">Competence is built deliberately.</p>
+    <div class="top" style="position:relative"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small data-i18n="org">Meridian Energy (fictional demo)</small></span></div></div>
+    <p class="headline" data-i18n="headline">Competence is built deliberately.</p>
   </section>
   <aside class="hero" aria-label="Apex CLMS — industrial plant">
     <div class="bg" aria-hidden="true">
@@ -85,59 +90,75 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
       <div class="photo" style="background-image:url(login/plant-blue.jpg);background-position:center 40%"></div>
       <div class="shade"></div>
     </div>
-    <div class="top"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small>Meridian Energy (fictional demo)</small></span></div></div>
+    <div class="top"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small data-i18n="org">Meridian Energy (fictional demo)</small></span></div></div>
     <div class="bottom">
-      <h1>Competence is built deliberately.</h1>
-      <p class="lede">Structured learning, verified competence and transparent development records for every role — from the control room to the boardroom.</p>
-      <div class="pillars"><div><b>Learn</b>Courses, paths and live sessions for your job title</div><div><b>Demonstrate</b>Evidence-based competency records</div><div><b>Progress</b>Next-level access opened by your administrator</div></div>
+      <h1 data-i18n="headline">Competence is built deliberately.</h1>
+      <p class="lede" data-i18n="lede">Structured learning, verified competence and transparent development records for every role — from the control room to the boardroom.</p>
+      <div class="pillars"><div><b data-i18n="p1">Learn</b><span data-i18n="p1d">Courses, paths and live sessions for your job title</span></div><div><b data-i18n="p2">Demonstrate</b><span data-i18n="p2d">Evidence-based competency records</span></div><div><b data-i18n="p3">Progress</b><span data-i18n="p3d">Next-level access opened by your administrator</span></div></div>
     </div>
   </aside>
   <main class="panel">
     <div class="form">
       <div class="grab" aria-hidden="true"></div>
-      <p class="kicker">Welcome to Apex CLMS</p>
-      <h2>Sign in</h2>
-      <p class="intro">Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.</p>
-      <p class="note"><b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.</p>
+      <nav class="langs" aria-label="Language"><a href="?lang=en" data-lang="en" lang="en">English</a><a href="?lang=ar" data-lang="ar" lang="ar">العربية</a><a href="?lang=fr" data-lang="fr" lang="fr">Français</a></nav>
+      <p class="kicker" data-i18n="kicker">Welcome to Apex CLMS</p>
+      <h2 data-i18n="signin">Sign in</h2>
+      <p class="intro" data-i18n="intro">Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.</p>
+      <p class="note" data-i18n="note"><b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.</p>
       <form id="f" novalidate>
-        <label for="sid">Staff ID</label>
-        <input id="sid" autocomplete="off" spellcheck="false" placeholder="e.g. D-20101" required aria-describedby="sid-hint">
-        <p id="sid-hint" class="hint">Printed on your staff badge.</p>
-        <label for="pw">Password</label>
+        <label for="sid" data-i18n="staff">Staff ID</label>
+        <input id="sid" autocomplete="off" spellcheck="false" placeholder="e.g. D-20101" data-i18n-ph="eg" required aria-describedby="sid-hint">
+        <p id="sid-hint" class="hint" data-i18n="badge">Printed on your staff badge.</p>
+        <label for="pw" data-i18n="password">Password</label>
         <input id="pw" type="password" autocomplete="off" required>
         <p id="err" class="err" role="alert" hidden></p>
-        <button class="submit" type="submit">Sign in</button>
+        <button class="submit" type="submit" data-i18n="signin">Sign in</button>
       </form>
       <details>
-        <summary>Demonstration staff IDs (fictional)</summary>
-        <p class="hint">All use the password <code>Demo#Apex2026!</code>. Choose one to fill the form.</p>
+        <summary data-i18n="demo">Demonstration staff IDs (fictional)</summary>
+        <p class="hint" data-i18n="allpw">All use the password <code>Demo#Apex2026!</code>. Choose one to fill the form.</p>
         <ul>
-        <li><button type="button" data-id="D-20101"><span class="id">D-20101</span><span><b>Lina Saleh</b> · Field Operator · new employee<small>A three-week starter: induction learning path, first mandatory training and no history yet.</small></span></button></li>
-        <li><button type="button" data-id="D-20102"><span class="id">D-20102</span><span><b>James Okafor</b> · Senior Process Engineer · instructor<small>Several completed courses, certificates, CPD on track and an agreed development plan towards Operations Superintendent.</small></span></button></li>
-        <li><button type="button" data-id="D-20103"><span class="id">D-20103</span><span><b>Daniel Reyes</b> · Senior Operator<small>Overdue mandatory training, an expired certificate in recertification and competency reassessments due.</small></span></button></li>
-        <li><button type="button" data-id="D-20104"><span class="id">D-20104</span><span><b>Aisha Rahman</b> · Field Operator · on a learning path<small>Progressing through Field Operator Development, with a practical assignment and a plan awaiting her manager.</small></span></button></li>
-        <li><button type="button" data-id="D-20105"><span class="id">D-20105</span><span><b>Priya Natarajan</b> · Reliability Engineer<small>CPD claims at every stage: draft, submitted, under review, approved and rejected with a reason.</small></span></button></li>
-        <li><button type="button" data-id="D-20109"><span class="id">D-20109</span><span><b>Kwame Mensah</b> · Promoted to Senior Operator<small>HR has recorded a promotion, but Senior Operator content stays closed until an administrator grants it.</small></span></button></li>
-        <li><button type="button" data-id="D-10003"><span class="id">D-10003</span><span><b>Omar Haddad</b> · Operations Superintendent · line manager<small>Team dashboard, overdue learning, plan approvals, competency gap matrix and grading as an instructor.</small></span></button></li>
-        <li><button type="button" data-id="D-10001"><span class="id">D-10001</span><span><b>Dr Helen Mercer</b> · L&D Administrator<small>Course authoring, webinars and attendance, CPD review queue, users, roles, reports, audit log and configuration.</small></span></button></li>
-        <li><button type="button" data-id="D-10002"><span class="id">D-10002</span><span><b>Catherine Lowe</b> · HR Director · executive<small>Organisational insights in aggregate only, with small groups suppressed.</small></span></button></li>
+        <li><button type="button" data-id="D-20101"><span class="id">D-20101</span><span><b>Lina Saleh</b> · <span data-i18n="role-lina">Field Operator · new employee</span><small data-i18n="look-lina">A three-week starter: induction learning path, first mandatory training and no history yet.</small></span></button></li>
+        <li><button type="button" data-id="D-20102"><span class="id">D-20102</span><span><b>James Okafor</b> · <span data-i18n="role-james">Senior Process Engineer · instructor</span><small data-i18n="look-james">Several completed courses, certificates, CPD on track and an agreed development plan towards Operations Superintendent.</small></span></button></li>
+        <li><button type="button" data-id="D-20103"><span class="id">D-20103</span><span><b>Daniel Reyes</b> · <span data-i18n="role-daniel">Senior Operator</span><small data-i18n="look-daniel">Overdue mandatory training, an expired certificate in recertification and competency reassessments due.</small></span></button></li>
+        <li><button type="button" data-id="D-20104"><span class="id">D-20104</span><span><b>Aisha Rahman</b> · <span data-i18n="role-aisha">Field Operator · on a learning path</span><small data-i18n="look-aisha">Progressing through Field Operator Development, with a practical assignment and a plan awaiting her manager.</small></span></button></li>
+        <li><button type="button" data-id="D-20105"><span class="id">D-20105</span><span><b>Priya Natarajan</b> · <span data-i18n="role-priya">Reliability Engineer</span><small data-i18n="look-priya">CPD claims at every stage: draft, submitted, under review, approved and rejected with a reason.</small></span></button></li>
+        <li><button type="button" data-id="D-20109"><span class="id">D-20109</span><span><b>Kwame Mensah</b> · <span data-i18n="role-kwame">Promoted to Senior Operator</span><small data-i18n="look-kwame">HR has recorded a promotion, but Senior Operator content stays closed until an administrator grants it.</small></span></button></li>
+        <li><button type="button" data-id="D-10003"><span class="id">D-10003</span><span><b>Omar Haddad</b> · <span data-i18n="role-omar">Operations Superintendent · line manager</span><small data-i18n="look-omar">Team dashboard, overdue learning, plan approvals, competency gap matrix and grading as an instructor.</small></span></button></li>
+        <li><button type="button" data-id="D-10001"><span class="id">D-10001</span><span><b>Dr Helen Mercer</b> · <span data-i18n="role-helen">L&D Administrator</span><small data-i18n="look-helen">Course authoring, webinars and attendance, CPD review queue, users, roles, reports, audit log and configuration.</small></span></button></li>
+        <li><button type="button" data-id="D-10002"><span class="id">D-10002</span><span><b>Catherine Lowe</b> · <span data-i18n="role-catherine">HR Director · executive</span><small data-i18n="look-catherine">Organisational insights in aggregate only, with small groups suppressed.</small></span></button></li>
         </ul>
       </details>
-      <p class="foot">All people, the organisation “Meridian Energy” and every record are fictional demonstration data. Snapshot generated 2026-10-20.</p>
+      <p class="foot"><span data-i18n="foot">All people, the organisation “Meridian Energy” and every record are fictional demonstration data.</span> <span dir="ltr">2026-10-21</span></p>
     </div>
   </main>
 </div>
 <script>
 (function(){
   var ids={"D-20101":"lina","D-20102":"james","D-20103":"daniel","D-20104":"aisha","D-20105":"priya","D-20109":"kwame","D-10003":"omar","D-10001":"helen","D-10002":"catherine"}, pw="Demo#Apex2026!";
+  var I={"en":{"title":"Sign in · Apex CLMS demo","org":"Meridian Energy (fictional demo)","headline":"Competence is built deliberately.","lede":"Structured learning, verified competence and transparent development records for every role — from the control room to the boardroom.","p1":"Learn","p1d":"Courses, paths and live sessions for your job title","p2":"Demonstrate","p2d":"Evidence-based competency records","p3":"Progress","p3d":"Next-level access opened by your administrator","kicker":"Welcome to Apex CLMS","signin":"Sign in","intro":"Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.","note":"<b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.","staff":"Staff ID","eg":"e.g. D-20101","badge":"Printed on your staff badge.","password":"Password","demo":"Demonstration staff IDs (fictional)","allpw":"All use the password <code>Demo#Apex2026!</code>. Choose one to fill the form.","foot":"All people, the organisation “Meridian Energy” and every record are fictional demonstration data.","empty":"Enter your staff ID and password.","wrong":"The staff ID or password is incorrect. In this preview, use one of the staff IDs listed below.","role-lina":"Field Operator · new employee","look-lina":"A three-week starter: induction learning path, first mandatory training and no history yet.","role-james":"Senior Process Engineer · instructor","look-james":"Several completed courses, certificates, CPD on track and an agreed development plan towards Operations Superintendent.","role-daniel":"Senior Operator","look-daniel":"Overdue mandatory training, an expired certificate in recertification and competency reassessments due.","role-aisha":"Field Operator · on a learning path","look-aisha":"Progressing through Field Operator Development, with a practical assignment and a plan awaiting her manager.","role-priya":"Reliability Engineer","look-priya":"CPD claims at every stage: draft, submitted, under review, approved and rejected with a reason.","role-kwame":"Promoted to Senior Operator","look-kwame":"HR has recorded a promotion, but Senior Operator content stays closed until an administrator grants it.","role-omar":"Operations Superintendent · line manager","look-omar":"Team dashboard, overdue learning, plan approvals, competency gap matrix and grading as an instructor.","role-helen":"L&D Administrator","look-helen":"Course authoring, webinars and attendance, CPD review queue, users, roles, reports, audit log and configuration.","role-catherine":"HR Director · executive","look-catherine":"Organisational insights in aggregate only, with small groups suppressed."},"ar":{"title":"تسجيل الدخول · عرض Apex CLMS التجريبي","org":"ميريديان للطاقة (عرض تجريبي افتراضي)","headline":"الكفاءة تُبنى بإتقان وتخطيط.","lede":"تعلّم منظّم وكفاءات موثّقة وسجلات تطوير شفافة لكل دور — من غرفة التحكم إلى مجلس الإدارة.","p1":"تعلّم","p1d":"دورات ومسارات وجلسات مباشرة لمسماك الوظيفي","p2":"أثبت","p2d":"سجلات كفاءات قائمة على الأدلة","p3":"تقدّم","p3d":"يفتح المسؤول الوصول إلى المستوى التالي","kicker":"مرحبًا بك في Apex CLMS","signin":"تسجيل الدخول","intro":"استخدم رقمك الوظيفي. فهو مرتبط بمسماك الوظيفي، لتطّلع على محتوى التعلم للمستويات التي فتحها لك المسؤول.","note":"<b>معاينة تفاعلية.</b> سجّل الدخول بأحد الموظفين الافتراضيين أدناه لاستكشاف Apex CLMS كما يراه. هذه المعاينة للقراءة فقط، لذا لا يُحفظ أي شيء تُدخله.","staff":"الرقم الوظيفي","eg":"مثال: D-20101","badge":"مطبوع على بطاقة الموظف الخاصة بك.","password":"كلمة المرور","demo":"أرقام موظفين تجريبية (افتراضية)","allpw":"كلمة المرور لجميع الحسابات: <code dir=\"ltr\">Demo#Apex2026!</code>. اختر حسابًا لتعبئة النموذج.","foot":"جميع الأشخاص ومؤسسة «ميريديان للطاقة» وكل السجلات بيانات تجريبية افتراضية.","empty":"أدخل رقمك الوظيفي وكلمة المرور.","wrong":"الرقم الوظيفي أو كلمة المرور غير صحيحة. في هذه المعاينة، استخدم أحد الأرقام الوظيفية المدرجة أدناه.","role-lina":"مشغّلة ميدانية · موظفة جديدة","look-lina":"موظفة منذ ثلاثة أسابيع: مسار تعلم تعريفي وأول تدريب إلزامي ولا يوجد سجل بعد.","role-james":"مهندس عمليات أول · مدرّب","look-james":"عدة دورات مكتملة وشهادات وتطوير مهني على المسار الصحيح وخطة تطوير معتمدة نحو منصب مشرف عمليات عام.","role-daniel":"مشغّل أول","look-daniel":"تدريب إلزامي متأخر وشهادة منتهية قيد إعادة الاعتماد وإعادة تقييم كفاءات مستحقة.","role-aisha":"مشغّلة ميدانية · ضمن مسار تعلم","look-aisha":"تتقدم في مسار تطوير المشغّل الميداني، مع مهمة عملية وخطة بانتظار مديرها.","role-priya":"مهندسة موثوقية","look-priya":"طلبات تطوير مهني في كل المراحل: مسودة ومقدَّم وقيد المراجعة ومعتمد ومرفوض مع ذكر السبب.","role-kwame":"تمت ترقيته إلى مشغّل أول","look-kwame":"سجّلت الموارد البشرية ترقيته، لكن محتوى المشغّل الأول يظل مغلقًا حتى يمنحه المسؤول الوصول.","role-omar":"مشرف عمليات عام · مدير مباشر","look-omar":"لوحة الفريق والتعلم المتأخر واعتماد الخطط ومصفوفة فجوات الكفاءات والتصحيح بصفته مدرّبًا.","role-helen":"مسؤولة التعلم والتطوير","look-helen":"إعداد الدورات والندوات والحضور ومراجعة طلبات التطوير المهني والمستخدمين والأدوار والتقارير وسجل التدقيق والإعدادات.","role-catherine":"مديرة الموارد البشرية · تنفيذية","look-catherine":"رؤى مؤسسية مجمّعة فقط، مع إخفاء المجموعات الصغيرة."},"fr":{"title":"Connexion · Démo Apex CLMS","org":"Meridian Energy (démo fictive)","headline":"La compétence se construit avec méthode.","lede":"Une formation structurée, des compétences vérifiées et des dossiers de développement transparents pour chaque poste — de la salle de contrôle au conseil d'administration.","p1":"Apprendre","p1d":"Formations, parcours et sessions en direct pour votre poste","p2":"Démontrer","p2d":"Dossiers de compétences fondés sur des preuves","p3":"Progresser","p3d":"Accès au niveau suivant ouvert par votre administrateur","kicker":"Bienvenue sur Apex CLMS","signin":"Se connecter","intro":"Utilisez votre matricule. Il est lié à votre poste : vous voyez le contenu de formation des niveaux ouverts par votre administrateur.","note":"<b>Aperçu interactif.</b> Connectez-vous avec l'un des collaborateurs fictifs ci-dessous pour découvrir Apex CLMS tel qu'il le voit. Cet aperçu est en lecture seule : rien de ce que vous saisissez n'est enregistré.","staff":"Matricule","eg":"ex. D-20101","badge":"Indiqué sur votre badge.","password":"Mot de passe","demo":"Matricules de démonstration (fictifs)","allpw":"Mot de passe commun : <code>Demo#Apex2026!</code>. Choisissez un profil pour remplir le formulaire.","foot":"Toutes les personnes, l'organisation « Meridian Energy » et tous les dossiers sont des données de démonstration fictives.","empty":"Saisissez votre matricule et votre mot de passe.","wrong":"Le matricule ou le mot de passe est incorrect. Dans cet aperçu, utilisez l'un des matricules ci-dessous.","role-lina":"Opératrice terrain · nouvelle arrivante","look-lina":"Arrivée depuis trois semaines : parcours d'intégration, première formation obligatoire et aucun historique.","role-james":"Ingénieur procédés senior · formateur","look-james":"Plusieurs formations terminées, des certificats, un DPC dans les temps et un plan de développement validé vers le poste de surintendant des opérations.","role-daniel":"Opérateur senior","look-daniel":"Formation obligatoire en retard, un certificat expiré en recertification et des réévaluations de compétences à prévoir.","role-aisha":"Opératrice terrain · en parcours de formation","look-aisha":"Progresse dans le parcours Développement opérateur terrain, avec un travail pratique et un plan en attente de sa responsable.","role-priya":"Ingénieure fiabilité","look-priya":"Des demandes de DPC à chaque étape : brouillon, soumise, en cours d'examen, approuvée et rejetée avec motif.","role-kwame":"Promu opérateur senior","look-kwame":"Les RH ont enregistré une promotion, mais le contenu opérateur senior reste fermé jusqu'à ce qu'un administrateur l'ouvre.","role-omar":"Surintendant des opérations · responsable hiérarchique","look-omar":"Tableau de bord d'équipe, formations en retard, validation des plans, matrice des écarts de compétences et correction en tant que formateur.","role-helen":"Administratrice formation","look-helen":"Création de formations, webinaires et présences, revue du DPC, utilisateurs, rôles, rapports, journal d'audit et configuration.","role-catherine":"Directrice des RH · direction","look-catherine":"Analyses de l'organisation uniquement agrégées, les petits groupes étant masqués."}};
+  var q=new URLSearchParams(location.search).get('lang'),saved=null;
+  try{saved=localStorage.getItem('apex_lang');}catch(e){}
+  var nav=(navigator.language||'en').slice(0,2);
+  var lang=I[q]?q:I[saved]?saved:I[nav]?nav:'en';
+  function apply(l){
+    lang=l;document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';
+    try{localStorage.setItem('apex_lang',l);}catch(e){}
+    document.querySelectorAll('[data-i18n]').forEach(function(n){var k=n.getAttribute('data-i18n');if(I[l][k]!=null)n.innerHTML=I[l][k];});
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(n){n.placeholder=I[l][n.getAttribute('data-i18n-ph')];});
+    document.querySelectorAll('.langs a').forEach(function(a){if(a.getAttribute('data-lang')===l)a.setAttribute('aria-current','true');else a.removeAttribute('aria-current');});
+    document.title=I[l].title;
+  }
+  document.querySelectorAll('.langs a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();apply(a.getAttribute('data-lang'));history.replaceState(null,'','?lang='+lang);});});
+  apply(lang);
   var f=document.getElementById('f'),sid=document.getElementById('sid'),p=document.getElementById('pw'),err=document.getElementById('err');
   document.querySelectorAll('details button[data-id]').forEach(function(b){b.addEventListener('click',function(){sid.value=b.getAttribute('data-id');p.value=pw;p.focus();});});
   f.addEventListener('submit',function(e){
     e.preventDefault();
     var id=sid.value.trim().toUpperCase().replace(/\s+/g,'');
-    if(!id||!p.value){err.textContent='Enter your staff ID and password.';err.hidden=false;return;}
-    if(!ids[id]||p.value!==pw){err.textContent='The staff ID or password is incorrect. In this demo, use one of the staff IDs listed below.';err.hidden=false;return;}
-    location.href='p/'+ids[id]+'/dashboard.html';
+    if(!id||!p.value){err.textContent=I[lang].empty;err.hidden=false;return;}
+    if(!ids[id]||p.value!==pw){err.textContent=I[lang].wrong;err.hidden=false;return;}
+    location.href='p/'+lang+'/'+ids[id]+'/dashboard.html';
   });
 })();
 </script>

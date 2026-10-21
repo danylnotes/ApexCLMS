@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = ["/login", "/forgot-password", "/reset-password", "/verify", "/session-expired", "/sso", "/access-denied", "/api/v1/health", "/api/v1/auth/login", "/api/v1/jobs/run"];
+const PUBLIC = ["/login", "/lang", "/forgot-password", "/reset-password", "/verify", "/session-expired", "/sso", "/access-denied", "/api/v1/health", "/api/v1/auth/login", "/api/v1/jobs/run"];
 
 /**
  * Edge pre-check only: redirects requests without a session cookie to sign-in.

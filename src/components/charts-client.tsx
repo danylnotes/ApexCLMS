@@ -1,14 +1,16 @@
 "use client";
 
+import { useI18n } from "@/i18n/client";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const AXIS = { fontSize: 12, fill: "rgb(140 145 154)", fontFamily: "var(--font-jakarta)" };
 const TOOLTIP = { contentStyle: { fontSize: 13, borderRadius: 12, border: "1px solid rgb(235 235 229)", boxShadow: "0 8px 24px rgb(16 24 40 / 0.08)" } };
 
 export function TrendChart({ data, xKey, yKey, label }: { data: Record<string, string | number>[]; xKey: string; yKey: string; label: string }) {
+  const { t } = useI18n();
   return (
     <figure>
-      <div className="h-56" role="img" aria-label={`${label}: ${data.map((d) => `${d[xKey]} ${d[yKey]}`).join(", ")}`}>
+      <div className="h-56" role="img" aria-label={t("{label}: {values}", { label, values: data.map((d) => `${d[xKey]} ${d[yKey]}`).join(", ") })}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
             <CartesianGrid stroke="rgb(235 235 229)" vertical={false} />
@@ -24,8 +26,9 @@ export function TrendChart({ data, xKey, yKey, label }: { data: Record<string, s
 }
 
 export function ColumnChart({ data, xKey, yKey, label, color = "rgb(24 26 31)" }: { data: Record<string, string | number>[]; xKey: string; yKey: string; label: string; color?: string }) {
+  const { t } = useI18n();
   return (
-    <div className="h-56" role="img" aria-label={`${label}: ${data.map((d) => `${d[xKey]} ${d[yKey]}`).join(", ")}`}>
+    <div className="h-56" role="img" aria-label={t("{label}: {values}", { label, values: data.map((d) => `${d[xKey]} ${d[yKey]}`).join(", ") })}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
           <CartesianGrid stroke="rgb(235 235 229)" vertical={false} />

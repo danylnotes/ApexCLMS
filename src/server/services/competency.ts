@@ -1,3 +1,4 @@
+import { translated } from "@/lib/status";
 import type { AssessmentMethod } from "@prisma/client";
 import { z } from "zod";
 import { contentAccess, courseAudienceWhere } from "./access";
@@ -10,7 +11,7 @@ import { notify } from "../notify";
 import { recordActivity } from "./activity";
 import { addMonths, evaluateCompetency, summarizeGaps, type CompetencyEvaluation } from "@/lib/domain/competency";
 
-export const METHOD_LABEL: Record<AssessmentMethod, string> = {
+export const METHOD_LABEL: Record<AssessmentMethod, string>= translated({
   COURSE_COMPLETION: "Course completion",
   KNOWLEDGE_ASSESSMENT: "Knowledge assessment",
   PRACTICAL_DEMONSTRATION: "Practical demonstration",
@@ -18,7 +19,7 @@ export const METHOD_LABEL: Record<AssessmentMethod, string> = {
   WORKPLACE_OBSERVATION: "Workplace observation",
   VERIFIED_QUALIFICATION: "Verified qualification",
   FORMAL_ASSESSMENT: "Formal competency assessment",
-};
+}) as Record<AssessmentMethod, string>;
 
 export const basisFor = (m: AssessmentMethod) => (m === "COURSE_COMPLETION" || m === "KNOWLEDGE_ASSESSMENT" ? "KNOWLEDGE" : "DEMONSTRATED");
 

@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { activeIntl, tr } from "@/i18n/active";
 import type { ReactNode } from "react";
 
 /* Dashboard widgets: rings, bars and a month calendar. Server-rendered, no client JavaScript. */
@@ -29,7 +30,7 @@ export function BarChart({ data, highlight, unit, height = 160 }: { data: { labe
   return (
     <figure>
       <div className="flex gap-3">
-        <div className="flex flex-col justify-between pb-6 text-right font-sans text-[0.75rem] tabular-nums text-ink-faint" style={{ height }} aria-hidden>
+        <div className="flex flex-col justify-between pb-6 text-end font-sans text-[0.75rem] tabular-nums text-ink-faint" style={{ height }} aria-hidden>
           {ticks.map((t, i) => <span key={i}>{t >= 10 ? Math.round(t) : Math.round(t * 10) / 10}{unit}</span>)}
         </div>
         <ul className="flex min-w-0 flex-1 items-end justify-between gap-1 sm:gap-2" style={{ height }}>
@@ -56,6 +57,12 @@ export function BarChart({ data, highlight, unit, height = 160 }: { data: { labe
   );
 }
 
+/** Narrow weekday names, Monday first, in the current language. */
+function weekdayInitials() {
+  const f = new Intl.DateTimeFormat(activeIntl(), { weekday: "narrow", timeZone: "UTC" });
+  return Array.from({ length: 7 }, (_, i) => f.format(new Date(Date.UTC(2024, 0, 1 + i))));
+}
+
 /** Month grid with today highlighted and dots on days that have events. */
 export function MiniCalendar({ today, events }: { today: Date; events: { date: Date; tone: "crit" | "warn" | "info" }[] }) {
   const y = today.getUTCFullYear();
@@ -74,14 +81,14 @@ export function MiniCalendar({ today, events }: { today: Date; events: { date: D
   const dot = { crit: "bg-crit", warn: "bg-warn", info: "bg-info" } as const;
   return (
     <div>
-      <p className="mb-3 font-sans text-sm font-bold text-ink">{first.toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}</p>
-      <div className="grid grid-cols-7 gap-y-1 text-center font-sans text-[0.75rem]" role="grid" aria-label="This month">
-        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <span key={i} className="pb-1 font-semibold text-ink-faint" aria-hidden>{d}</span>)}
+      <p className="mb-3 font-sans text-sm font-bold text-ink">{first.toLocaleDateString(activeIntl(), { month: "long", year: "numeric", timeZone: "UTC" })}</p>
+      <div className="grid grid-cols-7 gap-y-1 text-center font-sans text-[0.75rem]" role="grid" aria-label={tr("This month")}>
+        {weekdayInitials().map((d, i) => <span key={i} className="pb-1 font-semibold text-ink-faint" aria-hidden>{d}</span>)}
         {cells.map((d, i) => {
           const isToday = d === today.getUTCDate();
           const marks = d ? byDay.get(d) : undefined;
           return (
-            <span key={i} className="flex flex-col items-center gap-0.5" role="gridcell" aria-label={d ? `${d}${isToday ? ", today" : ""}${marks ? ", has activity" : ""}` : undefined}>
+            <span key={i} className="flex flex-col items-center gap-0.5" role="gridcell" aria-label={d ? [String(d), isToday && tr("today"), marks && tr("has activity")].filter(Boolean).join(", ") : undefined}>
               <span className={clsx("flex h-8 w-8 items-center justify-center rounded-full tabular-nums", isToday ? "bg-navy font-bold text-lime" : d ? "text-ink" : "")}>{d ?? ""}</span>
               <span className="flex h-1 gap-0.5" aria-hidden>{marks && [...marks].map((t) => <span key={t} className={clsx("h-1 w-1 rounded-full", dot[t as keyof typeof dot])} />)}</span>
             </span>
@@ -101,7 +108,7 @@ export function StatCard({ icon, label, value, context, definition, tone, chip =
     <div className="card flex min-w-0 flex-col p-4 shadow-panel">
       <div className="flex items-start justify-between gap-2">
         <span className={clsx("flex h-10 w-10 items-center justify-center rounded-2xl text-navy", chipClass(chip))} aria-hidden>{icon}</span>
-        {tone && <span className={clsx("rounded-full px-2 py-0.5 font-sans text-[0.75rem] font-semibold", tone === "crit" ? "bg-crit-50 text-crit" : "bg-warn-50 text-warn")}>{tone === "crit" ? "Action" : "Attention"}</span>}
+        {tone && <span className={clsx("rounded-full px-2 py-0.5 font-sans text-[0.75rem] font-semibold", tone === "crit" ? "bg-crit-50 text-crit" : "bg-warn-50 text-warn")}>{tone === "crit" ? tr("Action") : tr("Attention")}</span>}
       </div>
       <dt className="mt-3 font-sans text-[0.75rem] font-medium text-ink-muted">{label}</dt>
       <dd className="mt-0.5">
@@ -111,7 +118,7 @@ export function StatCard({ icon, label, value, context, definition, tone, chip =
       {definition && (
         <details className="mt-auto pt-2">
           <summary className="cursor-pointer list-none font-sans text-[0.75rem] text-ink-faint hover:text-ink [&::-webkit-details-marker]:hidden">
-            <span className="underline decoration-dotted underline-offset-2">How is this calculated?</span>
+            <span className="underline decoration-dotted underline-offset-2">{tr("How is this calculated?")}</span>
           </summary>
           <p className="mt-1 text-[0.75rem] leading-snug text-ink-muted">{definition}</p>
         </details>

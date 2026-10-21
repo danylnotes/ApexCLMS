@@ -26,9 +26,9 @@ export default {
         idle: { DEFAULT: token("idle"), 50: token("idle-50") },
       },
       fontFamily: {
-        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
-        body: ["var(--font-jakarta)", "system-ui", "sans-serif"],
-        serif: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        sans: ["var(--font-jakarta)", "var(--font-arabic)", "system-ui", "sans-serif"],
+        body: ["var(--font-jakarta)", "var(--font-arabic)", "system-ui", "sans-serif"],
+        serif: ["var(--font-jakarta)", "var(--font-arabic)", "system-ui", "sans-serif"],
       },
       fontSize: {
         "2xs": ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.02em" }],

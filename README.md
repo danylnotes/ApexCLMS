@@ -2,7 +2,7 @@
 
 *Competency & Learning Management System — developing competence, strengthening performance, advancing careers.*
 
-**Live read-only demo:** https://danylnotes.github.io/ApexCLMS/ — sign in with a fictional staff ID to open static snapshots of the app for nine personas (employees, a newly promoted operator, a line manager, an L&D administrator and an executive). Saving and approvals need the full app; see [docs/HOSTING.md](docs/HOSTING.md).
+**Live read-only demo:** https://danylnotes.github.io/ApexCLMS/ — in English, Arabic or French; sign in with a fictional staff ID to open static snapshots of the app for nine personas (employees, a newly promoted operator, a line manager, an L&D administrator and an executive). Saving and approvals need the full app; see [docs/HOSTING.md](docs/HOSTING.md).
 
 An enterprise learning, competency and career-development platform for an oil and gas organisation. It connects learning activity to demonstrable workplace competence, mandatory-training compliance, CPD and career progression — with role-based access enforced on the server and every record persisted in PostgreSQL.
 
@@ -14,6 +14,10 @@ An enterprise learning, competency and career-development platform for an oil an
 - Courses carry a **job-title audience**; courses without one are open to everyone (e.g. site-wide mandatory training). Learning paths aimed at a job title follow the same rule. Staff see, search, open and enrol only on content for the job titles they hold an **access grant** for — anything else answers "not found", in the UI and the API.
 - **Promotion does not open the next level automatically.** When HR changes someone's job title, the record notes it and the administrator decides when to grant the new level (*Administration → Users → person → Content access by job title*). The employee is notified when access is granted.
 - Learning records are never hidden: courses already enrolled on or assigned stay accessible. Assigning restricted content to someone without access is refused until an administrator grants it.
+
+## Languages
+
+The interface is available in **English, Arabic (right-to-left) and French**. Choose a language with the buttons on the sign-in page or the language menu in the app header (on phones: Menu). The choice is remembered; without one, the browser's language is used. Records such as course titles, names and notes appear as entered. See [docs/I18N.md](docs/I18N.md).
 
 ## What it does
 

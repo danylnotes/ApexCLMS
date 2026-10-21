@@ -6,6 +6,7 @@ import { clearSessionCookie, createSession, getActor, requestMeta, revokeSession
 import { audit } from "@/server/audit";
 import { runAction, str } from "@/server/action";
 import type { ActionState } from "@/lib/action-state";
+import { getI18n } from "@/i18n/server";
 
 function safeNext(n: string) {
   return n.startsWith("/") && !n.startsWith("//") && !n.startsWith("/\\") ? n : "/dashboard";
@@ -14,10 +15,11 @@ function safeNext(n: string) {
 export async function loginAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const staffId = str(fd, "staffId");
   const password = str(fd, "password");
-  if (!staffId || !password) return { ok: false, error: "Enter your staff ID and password." };
+  const { t } = await getI18n();
+  if (!staffId || !password) return { ok: false, error: t("Enter your staff ID and password.") };
   const meta = await requestMeta();
   const r = await authenticate(staffId, password, meta.ip);
-  if (!r.ok) return { ok: false, error: r.error, data: r.code ? { code: r.code } : undefined };
+  if (!r.ok) return { ok: false, error: t(r.error), data: r.code ? { code: r.code } : undefined };
   const { token, expiresAt } = await createSession(r.userId, meta);
   await setSessionCookie(token, expiresAt);
   redirect(safeNext(str(fd, "next")));
@@ -34,11 +36,12 @@ export async function logoutAction() {
 }
 
 export async function forgotPasswordAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const { t } = await getI18n();
   const email = str(fd, "email");
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: "Enter a valid email address." };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: t("Enter a valid email address.") };
   const meta = await requestMeta();
   await requestPasswordReset(email, meta.ip);
-  return { ok: true, message: "If an active account exists for that address, a reset link has been sent. The link is valid for 60 minutes." };
+  return { ok: true, message: t("If an active account exists for that address, a reset link has been sent. The link is valid for 60 minutes.") };
 }
 
 export async function resetPasswordAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -51,6 +54,7 @@ export async function resetPasswordAction(_: ActionState, fd: FormData): Promise
 }
 
 export async function resendVerificationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const { t } = await getI18n();
   await sendVerification(str(fd, "email"));
-  return { ok: true, message: "If the address needs verification, a new link has been sent." };
+  return { ok: true, message: t("If the address needs verification, a new link has been sent.") };
 }

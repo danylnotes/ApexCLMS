@@ -1,0 +1,18 @@
+﻿Employee,Department,Course,Due,Completed,Status
+Daniel Reyes,Refinery Operations,H₂S Awareness and Respiratory Protection,2024-09-11,2024-08-22,COMPLETED
+Yusuf Kareem,Refinery Operations,Permit to Work and Energy Isolation,2025-12-14,2025-12-04,COMPLETED
+Ravi Iyer,Utilities & Energy,Permit to Work and Energy Isolation,2026-01-21,2026-01-11,COMPLETED
+Aisha Rahman,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-05-24,2026-04-24,COMPLETED
+Aisha Rahman,Refinery Operations,Permit to Work and Energy Isolation,2026-06-23,2026-06-03,COMPLETED
+Kwame Mensah,Refinery Operations,Permit to Work and Energy Isolation,2026-08-14,2026-08-04,COMPLETED
+Aisha Rahman,Refinery Operations,Process Safety Management Fundamentals,2026-10-01,2026-08-22,COMPLETED
+Daniel Reyes,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-10-03,,OVERDUE
+Sofia Marin,Refinery Operations,Permit to Work and Energy Isolation,2026-10-09,,OVERDUE
+Sofia Marin,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-10-12,,OVERDUE
+Daniel Reyes,Refinery Operations,Permit to Work and Energy Isolation,2026-10-12,,OVERDUE
+Lina Saleh,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-11-02,,DUE_SOON
+Ravi Iyer,Utilities & Energy,H₂S Awareness and Respiratory Protection,2026-11-03,,DUE_SOON
+Yusuf Kareem,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-11-11,,DUE_SOON
+Kwame Mensah,Refinery Operations,H₂S Awareness and Respiratory Protection,2026-11-28,,PENDING
+Lina Saleh,Refinery Operations,Permit to Work and Energy Isolation,2026-11-30,,PENDING
+Lina Saleh,Refinery Operations,Process Safety Management Fundamentals,2026-12-30,,PENDING

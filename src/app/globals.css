@@ -154,6 +154,20 @@
   table.rtable td:empty { display: none; }
 }
 
+/* Arabic: the Arabic face leads, and letter-spacing/uppercase (which break Arabic joining) are neutralised. */
+[dir="rtl"] body,
+[dir="rtl"] .font-sans,
+[dir="rtl"] .font-body,
+[dir="rtl"] .font-serif {
+  font-family: var(--font-arabic), var(--font-jakarta), system-ui, sans-serif;
+}
+[dir="rtl"] * {
+  letter-spacing: 0 !important;
+}
+[dir="rtl"] body {
+  line-height: 1.75;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -170,3 +170,26 @@ test("job-title access: promotion opens the next level only when an administrato
   await page.goto("/catalogue?q=OPX-210");
   await expect(page.getByRole("link", { name: /Operational Excellence/ }).first()).toBeVisible();
 });
+
+test("languages: switch to Arabic on the sign-in page, then to French from the app header", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page.getByRole("link", { name: "العربية" }).first().click();
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  await expect(page.getByRole("heading", { name: "تسجيل الدخول" })).toBeVisible();
+
+  await page.getByLabel("الرقم الوظيفي").fill("D-20101");
+  await page.getByLabel("كلمة المرور", { exact: true }).fill("Demo#Apex2026!");
+  await page.getByRole("button", { name: "تسجيل الدخول" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.getByRole("heading", { name: /مرحبًا بعودتك/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "دليل الدورات" }).first()).toBeVisible();
+
+  await page.locator("summary[aria-label='اللغة']").click();
+  await page.getByRole("link", { name: "Français" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(page.getByRole("heading", { name: /Bon retour/ })).toBeVisible();
+  await page.context().clearCookies();
+});

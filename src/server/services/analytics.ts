@@ -1,3 +1,4 @@
+import { activeIntl, tr } from "@/i18n/active";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { summarizeCompliance, mandatoryState } from "@/lib/domain/compliance";
@@ -49,7 +50,7 @@ export async function computeAnalytics(scopeUserIds: string[] | null, f: Analyti
     select: { id: true, name: true, profile: { select: { departmentId: true, jobRoleId: true, department: { select: { name: true } }, jobRole: { select: { title: true } } } } },
   });
   const ids = users.map((u) => u.id);
-  const deptOf = new Map(users.map((u) => [u.id, u.profile?.department?.name ?? "Unassigned"]));
+  const deptOf = new Map(users.map((u) => [u.id, u.profile?.department?.name ?? tr("Unassigned")]));
   const courseFilter: Prisma.CourseWhereInput = f.categoryId ? { categoryId: f.categoryId } : {};
   const inWindow = { gte: f.from, lte: f.to };
 
@@ -116,16 +117,16 @@ export async function computeAnalytics(scopeUserIds: string[] | null, f: Analyti
   for (const p of plans) if (!latestPlan.has(p.userId)) latestPlan.set(p.userId, p.status);
 
   const metrics: MetricDef[] = [
-    { key: "learners", label: "Active learners", value: events.length, display: `${events.length} of ${users.length}`, definition: "Employees with at least one recorded learning activity in the reporting period, out of active employees in scope." },
-    { key: "participation", label: "Learning participation", value: pct(events.length, users.length), display: fmtPct(pct(events.length, users.length)), definition: "Active learners ÷ active employees in scope." },
-    { key: "completion", label: "Course completion rate", value: pct(windowCompleted, windowEnrol.length), display: fmtPct(pct(windowCompleted, windowEnrol.length)), definition: "Enrolments started in the period that are now completed ÷ all enrolments started in the period." },
-    { key: "compliance", label: "Mandatory training compliance", value: compliance.ratePercent, display: fmtPct(compliance.ratePercent), definition: "Completed mandatory items ÷ mandatory items completed or past due (current position, all assignments)." },
-    { key: "hours", label: "Average learning hours", value: users.length ? Math.round((totalSeconds / 3600 / users.length) * 10) / 10 : null, display: users.length ? `${(totalSeconds / 3600 / users.length).toFixed(1)} h` : "—", definition: "Recorded platform learning time on enrolments accessed in the period ÷ employees in scope. Excludes offline and external learning." },
-    { key: "cpd", label: "Approved CPD participation", value: pct(cpdUsers.size, users.length), display: fmtPct(pct(cpdUsers.size, users.length)), definition: "Employees with at least one CPD claim approved in the period ÷ employees in scope." },
-    { key: "assessment", label: "Assessment success rate", value: pct(passed, attempts.length), display: fmtPct(pct(passed, attempts.length)), definition: "Passed graded attempts ÷ all graded attempts submitted in the period (all attempts, not only first)." },
-    { key: "coverage", label: "Competency coverage", value: pct(reqMet, reqTotal), display: fmtPct(pct(reqMet, reqTotal)), definition: "Role competency requirements met at the required level (current, unexpired, demonstrated evidence) ÷ all role requirements for employees in scope." },
-    { key: "overdue", label: "Overdue learning assignments", value: overdueAssignments, display: String(overdueAssignments), definition: "Required assignments past their due date and not completed (current position)." },
-    { key: "expiries", label: "Certificate expiries (60 days)", value: certs.length, display: String(certs.length), definition: "Valid certificates expiring within the next 60 days." },
+    { key: "learners", label: tr("Active learners"), value: events.length, display: tr("{n} of {total}", { n: events.length, total: users.length }), definition: tr("Employees with at least one recorded learning activity in the reporting period, out of active employees in scope.") },
+    { key: "participation", label: tr("Learning participation"), value: pct(events.length, users.length), display: fmtPct(pct(events.length, users.length)), definition: tr("Active learners ÷ active employees in scope.") },
+    { key: "completion", label: tr("Course completion rate"), value: pct(windowCompleted, windowEnrol.length), display: fmtPct(pct(windowCompleted, windowEnrol.length)), definition: tr("Enrolments started in the period that are now completed ÷ all enrolments started in the period.") },
+    { key: "compliance", label: tr("Mandatory training compliance"), value: compliance.ratePercent, display: fmtPct(compliance.ratePercent), definition: tr("Completed mandatory items ÷ mandatory items completed or past due (current position, all assignments).") },
+    { key: "hours", label: tr("Average learning hours"), value: users.length ? Math.round((totalSeconds / 3600 / users.length) * 10) / 10 : null, display: users.length ? tr("{n} h", { n: (totalSeconds / 3600 / users.length).toFixed(1) }) : "—", definition: tr("Recorded platform learning time on enrolments accessed in the period ÷ employees in scope. Excludes offline and external learning.") },
+    { key: "cpd", label: tr("Approved CPD participation"), value: pct(cpdUsers.size, users.length), display: fmtPct(pct(cpdUsers.size, users.length)), definition: tr("Employees with at least one CPD claim approved in the period ÷ employees in scope.") },
+    { key: "assessment", label: tr("Assessment success rate"), value: pct(passed, attempts.length), display: fmtPct(pct(passed, attempts.length)), definition: tr("Passed graded attempts ÷ all graded attempts submitted in the period (all attempts, not only first).") },
+    { key: "coverage", label: tr("Competency coverage"), value: pct(reqMet, reqTotal), display: fmtPct(pct(reqMet, reqTotal)), definition: tr("Role competency requirements met at the required level (current, unexpired, demonstrated evidence) ÷ all role requirements for employees in scope.") },
+    { key: "overdue", label: tr("Overdue learning assignments"), value: overdueAssignments, display: String(overdueAssignments), definition: tr("Required assignments past their due date and not completed (current position).") },
+    { key: "expiries", label: tr("Certificate expiries (60 days)"), value: certs.length, display: String(certs.length), definition: tr("Valid certificates expiring within the next 60 days.") },
   ];
 
   // Department breakdowns
@@ -179,7 +180,7 @@ export async function computeAnalytics(scopeUserIds: string[] | null, f: Analyti
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-    trend.push({ month: d.toLocaleString("en-GB", { month: "short", year: "2-digit" }), completions: completions.filter((c) => c.completedAt >= d && c.completedAt < next).length });
+    trend.push({ month: d.toLocaleString(activeIntl(), { month: "short", year: "2-digit" }), completions: completions.filter((c) => c.completedAt >= d && c.completedAt < next).length });
   }
 
   // Course effectiveness
@@ -216,11 +217,11 @@ export async function computeAnalytics(scopeUserIds: string[] | null, f: Analyti
     trend,
     roleCoverage: [...roleCoverage.entries()].map(([role, v]) => ({ role, coverage: pct(v.met, v.total) ?? 0, requirements: v.total })).sort((a, b) => a.coverage - b.coverage),
     gapDistribution: [
-      { bucket: "Met", count: gapBuckets.met },
-      { bucket: "1 level", count: gapBuckets.one },
-      { bucket: "2 levels", count: gapBuckets.two },
-      { bucket: "3+ levels", count: gapBuckets.three },
-      { bucket: "Not assessed", count: gapBuckets.notAssessed },
+      { bucket: tr("Met"), count: gapBuckets.met },
+      { bucket: tr("1 level"), count: gapBuckets.one },
+      { bucket: tr("2 levels"), count: gapBuckets.two },
+      { bucket: tr("3+ levels"), count: gapBuckets.three },
+      { bucket: tr("Not assessed"), count: gapBuckets.notAssessed },
     ],
     courses,
     planDistribution: planDist,

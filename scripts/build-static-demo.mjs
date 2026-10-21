@@ -34,7 +34,7 @@ const PERSONAS = [
   { key: "catherine", staffId: "D-10002", email: "catherine.lowe@apex-demo.test", name: "Catherine Lowe", role: "HR Director · executive", look: "Organisational insights in aggregate only, with small groups suppressed." },
 ];
 
-const SKIP = [/^\/login/, /^\/forgot-password/, /^\/reset-password/, /^\/verify/, /^\/session-expired/, /^\/sso/, /^\/access-denied/];
+const SKIP = [/^\/lang/, /^\/login/, /^\/forgot-password/, /^\/reset-password/, /^\/verify/, /^\/session-expired/, /^\/sso/, /^\/access-denied/];
 const FILE_API = /^\/api\/v1\/(certificates\/[^/]+\/pdf|exports\/[^/?]+|files\/[^/?]+|webinars\/[^/]+\/ics)/;
 
 const slugOf = (u) => {
@@ -56,8 +56,17 @@ const normal = (href) => {
 
 const assets = new Set();
 
-async function crawlPersona(browser, p) {
+/** The demo is captured in every interface language: p/<lang>/<persona>/<page>.html. */
+const LANGS = ["en", "ar", "fr"];
+const T = {
+  en: { bar: "Read-only demo", staff: "Staff ID", switch: "Sign in as someone else", toast: "This is a read-only preview of Apex CLMS, so changes are not saved. Saving, enrolment, assessments and approvals work in the full platform.", nidTitle: "Not included in the preview", nidBody: "This page needs the live platform — for example a filtered search, a form result or a record the selected person cannot see. The preview contains every page each person can reach by navigation.", back: "Go back" },
+  ar: { bar: "عرض تجريبي للقراءة فقط", staff: "الرقم الوظيفي", switch: "تسجيل الدخول بحساب آخر", toast: "هذه معاينة للقراءة فقط من Apex CLMS، لذا لا تُحفظ التغييرات. يعمل الحفظ والتسجيل والتقييمات والموافقات في المنصة الكاملة.", nidTitle: "غير متضمنة في المعاينة", nidBody: "تتطلب هذه الصفحة المنصة الفعلية — مثل بحث مُصفّى أو نتيجة نموذج أو سجل لا يمكن للشخص المختار رؤيته. تتضمن المعاينة كل صفحة يمكن لكل شخص الوصول إليها عبر التنقل.", back: "رجوع" },
+  fr: { bar: "Démo en lecture seule", staff: "Matricule", switch: "Se connecter avec un autre compte", toast: "Ceci est un aperçu en lecture seule d'Apex CLMS : les modifications ne sont pas enregistrées. L'enregistrement, les inscriptions, les évaluations et les approbations fonctionnent dans la plateforme complète.", nidTitle: "Non incluse dans l'aperçu", nidBody: "Cette page nécessite la plateforme en ligne — par exemple une recherche filtrée, le résultat d'un formulaire ou un dossier que la personne choisie ne peut pas voir. L'aperçu contient toutes les pages accessibles par la navigation.", back: "Retour" },
+};
+
+async function crawlPersona(browser, p, lang) {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
+  await ctx.addCookies([{ name: "apex_lang", value: lang, url: BASE }]);
   const page = await ctx.newPage();
   await page.goto(`${BASE}/login`);
   await page.fill("#staffId", p.staffId);
@@ -71,13 +80,15 @@ async function crawlPersona(browser, p) {
   while (queue.length && pages.size < MAX_PAGES) {
     const url = queue.shift();
     if (FILE_API.test(url)) {
-      const r = await ctx.request.get(BASE + url);
-      if (r.ok()) {
+      // Retry transient connection drops; skip the file rather than abort the whole crawl.
+      let r = null;
+      for (let attempt = 0; attempt < 3 && !r; attempt++) r = await ctx.request.get(BASE + url, { timeout: 120000 }).catch(() => null);
+      if (r && r.ok()) {
         const type = r.headers()["content-type"] ?? "";
         const ext = type.includes("pdf") ? ".pdf" : type.includes("csv") ? ".csv" : type.includes("calendar") ? ".ics" : type.includes("png") ? ".png" : type.includes("jpeg") ? ".jpg" : "";
         const name = `${slugOf(url)}${ext}`;
-        await mkdir(path.join(OUT, "p", p.key, "files"), { recursive: true });
-        await writeFile(path.join(OUT, "p", p.key, "files", name), Buffer.from(await r.body()));
+        await mkdir(path.join(OUT, "p", lang, p.key, "files"), { recursive: true });
+        await writeFile(path.join(OUT, "p", lang, p.key, "files", name), Buffer.from(await r.body()));
         files.set(url, name);
       }
       continue;
@@ -112,16 +123,17 @@ async function crawlPersona(browser, p) {
     }
   }
   await ctx.close();
-  console.log(`${p.key}: ${pages.size} pages, ${files.size} files`);
+  console.log(`${lang}/${p.key}: ${pages.size} pages, ${files.size} files`);
   return { pages, files };
 }
 
-function demoChrome(p) {
+function demoChrome(p, lang) {
+  const x = T[lang];
   return `<!--demo-chrome-->
 <style>
 :root{--demo-h:34px}
 body{padding-top:var(--demo-h)}
-#demo-bar{position:fixed;top:0;left:0;right:0;height:var(--demo-h);z-index:60;display:flex;gap:14px;align-items:center;justify-content:center;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(60px,env(safe-area-inset-left,0px));background:#181a1f;color:#fff;font:500 12.5px/1 "Plus Jakarta Sans",system-ui,sans-serif;white-space:nowrap;overflow:hidden}
+#demo-bar{position:fixed;top:0;left:0;right:0;direction:inherit;height:var(--demo-h);z-index:60;display:flex;gap:14px;align-items:center;justify-content:center;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(60px,env(safe-area-inset-left,0px));background:#181a1f;color:#fff;font:500 12.5px/1 system-ui,sans-serif;white-space:nowrap;overflow:hidden}
 #demo-bar b{color:#cfee5c}
 #demo-bar a{color:#fff;text-decoration:underline;text-underline-offset:2px}
 #demo-bar .long{overflow:hidden;text-overflow:ellipsis}
@@ -132,7 +144,7 @@ header.sticky{top:var(--demo-h)!important}
 #demo-toast[hidden]{display:none}
 body.demo-nav-open aside.bg-navy.fixed{display:flex!important;z-index:45;top:calc(var(--demo-h) + 8px);left:8px;right:8px;width:auto;bottom:calc(max(0.75rem,env(safe-area-inset-bottom)) + 76px);box-shadow:0 16px 40px rgb(24 26 31/.35)}
 </style>
-<div id="demo-bar" role="note"><span class="long">Read-only demo · <b>${p.name}</b> · Staff ID ${p.staffId}<span class="wide"> (${p.role})</span></span><a href="../../index.html">Sign in as someone else</a></div>
+<div id="demo-bar" role="note"><span class="long">${x.bar} · <b>${p.name}</b> · ${x.staff} <span dir="ltr">${p.staffId}</span></span><a href="../../../index.html?lang=${lang}">${x.switch}</a></div>
 <div id="demo-toast" role="status" hidden></div>
 <script>
 (function(){
@@ -141,8 +153,8 @@ body.demo-nav-open aside.bg-navy.fixed{display:flex!important;z-index:45;top:cal
   document.addEventListener('submit',function(e){
     e.preventDefault();
     var b=e.submitter;
-    if(b&&/Sign out/.test(b.textContent||'')){location.href='../../index.html';return;}
-    toast('This is a read-only preview of Apex CLMS, so changes are not saved. Saving, enrolment, assessments and approvals work in the full platform.');
+    if(b&&b.hasAttribute('data-signout')){location.href='../../../index.html?lang=${lang}';return;}
+    toast(${JSON.stringify(x.toast)});
   },true);
   document.addEventListener('click',function(e){
     var b=e.target.closest&&e.target.closest('button[aria-controls="mobile-nav"]');
@@ -161,21 +173,29 @@ body.demo-nav-open aside.bg-navy.fixed{display:flex!important;z-index:45;top:cal
 </script><!--/demo-chrome-->`;
 }
 
-function rewrite(html, p, pageSlugs, files) {
-  const rel = (target) => target; // all persona pages share one flat directory
+function rewrite(html, p, lang, pageSlugs, files) {
+  const rel = (target) => target; // all of a persona's pages share one flat directory
   html = html.replace(/\s(href|src|action)="([^"]*)"/g, (m, attr, val) => {
     const v = val.replace(/&amp;/g, "&");
-    if (v.startsWith("/_next/")) return ` ${attr}="../../assets${v}"`;
+    if (v.startsWith("/_next/")) return ` ${attr}="../../../assets${v}"`;
     if (!v.startsWith("/")) return m;
+    // Language switch: the same page in the other language's snapshot.
+    if (v.startsWith("/lang?")) {
+      const q = new URLSearchParams(v.split("?")[1]);
+      const target = normal(q.get("next") ?? "/dashboard");
+      const to = q.get("set");
+      if (LANGS.includes(to) && target && pageSlugs.has(target)) return ` ${attr}="../../${to}/${p.key}/${pageSlugs.get(target)}.html"`;
+      return ` ${attr}="../../${to}/${p.key}/dashboard.html"`;
+    }
     const n = normal(v);
     if (n && files.has(n)) return ` ${attr}="${rel("files/" + files.get(n))}"`;
     if (n && pageSlugs.has(n)) return ` ${attr}="${rel(pageSlugs.get(n) + ".html")}"`;
     if (attr === "action") return ` ${attr}="#"`;
-    return ` ${attr}="../../not-in-demo.html"`;
+    return ` ${attr}="../../../not-in-demo-${lang}.html"`;
   });
   // GET search forms (catalogue filters, top search) would otherwise point at the server.
-  html = html.replace(/<form([^>]*)action="\.\.\/\.\.\/not-in-demo\.html"/g, '<form$1action="#"');
-  return html.replace(/<body([^>]*)>/, (m) => `${m}${demoChrome(p)}`).replace(/<title>/, "<title>Demo · ");
+  html = html.replace(/<form([^>]*)action="\.\.\/\.\.\/\.\.\/not-in-demo-\w+\.html"/g, '<form$1action="#"');
+  return html.replace(/<body([^>]*)>/, (m) => `${m}${demoChrome(p, lang)}`).replace(/<title>/, "<title>Demo · ");
 }
 
 async function fetchAssets() {
@@ -203,11 +223,76 @@ async function fetchAssets() {
   console.log(`assets: ${done.size}`);
 }
 
+
+/** Text of the demo's sign-in page in each language (persona descriptions included). */
+const INDEX_I18N = {
+  en: {
+    title: "Sign in · Apex CLMS demo", org: "Meridian Energy (fictional demo)", headline: "Competence is built deliberately.",
+    lede: "Structured learning, verified competence and transparent development records for every role — from the control room to the boardroom.",
+    p1: "Learn", p1d: "Courses, paths and live sessions for your job title", p2: "Demonstrate", p2d: "Evidence-based competency records", p3: "Progress", p3d: "Next-level access opened by your administrator",
+    kicker: "Welcome to Apex CLMS", signin: "Sign in", intro: "Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.",
+    note: "<b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.",
+    staff: "Staff ID", eg: "e.g. D-20101", badge: "Printed on your staff badge.", password: "Password", demo: "Demonstration staff IDs (fictional)",
+    allpw: "All use the password <code>Demo#Apex2026!</code>. Choose one to fill the form.",
+    foot: "All people, the organisation “Meridian Energy” and every record are fictional demonstration data.",
+    empty: "Enter your staff ID and password.", wrong: "The staff ID or password is incorrect. In this preview, use one of the staff IDs listed below.",
+    "role-lina": "Field Operator · new employee", "look-lina": "A three-week starter: induction learning path, first mandatory training and no history yet.",
+    "role-james": "Senior Process Engineer · instructor", "look-james": "Several completed courses, certificates, CPD on track and an agreed development plan towards Operations Superintendent.",
+    "role-daniel": "Senior Operator", "look-daniel": "Overdue mandatory training, an expired certificate in recertification and competency reassessments due.",
+    "role-aisha": "Field Operator · on a learning path", "look-aisha": "Progressing through Field Operator Development, with a practical assignment and a plan awaiting her manager.",
+    "role-priya": "Reliability Engineer", "look-priya": "CPD claims at every stage: draft, submitted, under review, approved and rejected with a reason.",
+    "role-kwame": "Promoted to Senior Operator", "look-kwame": "HR has recorded a promotion, but Senior Operator content stays closed until an administrator grants it.",
+    "role-omar": "Operations Superintendent · line manager", "look-omar": "Team dashboard, overdue learning, plan approvals, competency gap matrix and grading as an instructor.",
+    "role-helen": "L&D Administrator", "look-helen": "Course authoring, webinars and attendance, CPD review queue, users, roles, reports, audit log and configuration.",
+    "role-catherine": "HR Director · executive", "look-catherine": "Organisational insights in aggregate only, with small groups suppressed.",
+  },
+  ar: {
+    title: "تسجيل الدخول · عرض Apex CLMS التجريبي", org: "ميريديان للطاقة (عرض تجريبي افتراضي)", headline: "الكفاءة تُبنى بإتقان وتخطيط.",
+    lede: "تعلّم منظّم وكفاءات موثّقة وسجلات تطوير شفافة لكل دور — من غرفة التحكم إلى مجلس الإدارة.",
+    p1: "تعلّم", p1d: "دورات ومسارات وجلسات مباشرة لمسماك الوظيفي", p2: "أثبت", p2d: "سجلات كفاءات قائمة على الأدلة", p3: "تقدّم", p3d: "يفتح المسؤول الوصول إلى المستوى التالي",
+    kicker: "مرحبًا بك في Apex CLMS", signin: "تسجيل الدخول", intro: "استخدم رقمك الوظيفي. فهو مرتبط بمسماك الوظيفي، لتطّلع على محتوى التعلم للمستويات التي فتحها لك المسؤول.",
+    note: "<b>معاينة تفاعلية.</b> سجّل الدخول بأحد الموظفين الافتراضيين أدناه لاستكشاف Apex CLMS كما يراه. هذه المعاينة للقراءة فقط، لذا لا يُحفظ أي شيء تُدخله.",
+    staff: "الرقم الوظيفي", eg: "مثال: D-20101", badge: "مطبوع على بطاقة الموظف الخاصة بك.", password: "كلمة المرور", demo: "أرقام موظفين تجريبية (افتراضية)",
+    allpw: "كلمة المرور لجميع الحسابات: <code dir=\"ltr\">Demo#Apex2026!</code>. اختر حسابًا لتعبئة النموذج.",
+    foot: "جميع الأشخاص ومؤسسة «ميريديان للطاقة» وكل السجلات بيانات تجريبية افتراضية.",
+    empty: "أدخل رقمك الوظيفي وكلمة المرور.", wrong: "الرقم الوظيفي أو كلمة المرور غير صحيحة. في هذه المعاينة، استخدم أحد الأرقام الوظيفية المدرجة أدناه.",
+    "role-lina": "مشغّلة ميدانية · موظفة جديدة", "look-lina": "موظفة منذ ثلاثة أسابيع: مسار تعلم تعريفي وأول تدريب إلزامي ولا يوجد سجل بعد.",
+    "role-james": "مهندس عمليات أول · مدرّب", "look-james": "عدة دورات مكتملة وشهادات وتطوير مهني على المسار الصحيح وخطة تطوير معتمدة نحو منصب مشرف عمليات عام.",
+    "role-daniel": "مشغّل أول", "look-daniel": "تدريب إلزامي متأخر وشهادة منتهية قيد إعادة الاعتماد وإعادة تقييم كفاءات مستحقة.",
+    "role-aisha": "مشغّلة ميدانية · ضمن مسار تعلم", "look-aisha": "تتقدم في مسار تطوير المشغّل الميداني، مع مهمة عملية وخطة بانتظار مديرها.",
+    "role-priya": "مهندسة موثوقية", "look-priya": "طلبات تطوير مهني في كل المراحل: مسودة ومقدَّم وقيد المراجعة ومعتمد ومرفوض مع ذكر السبب.",
+    "role-kwame": "تمت ترقيته إلى مشغّل أول", "look-kwame": "سجّلت الموارد البشرية ترقيته، لكن محتوى المشغّل الأول يظل مغلقًا حتى يمنحه المسؤول الوصول.",
+    "role-omar": "مشرف عمليات عام · مدير مباشر", "look-omar": "لوحة الفريق والتعلم المتأخر واعتماد الخطط ومصفوفة فجوات الكفاءات والتصحيح بصفته مدرّبًا.",
+    "role-helen": "مسؤولة التعلم والتطوير", "look-helen": "إعداد الدورات والندوات والحضور ومراجعة طلبات التطوير المهني والمستخدمين والأدوار والتقارير وسجل التدقيق والإعدادات.",
+    "role-catherine": "مديرة الموارد البشرية · تنفيذية", "look-catherine": "رؤى مؤسسية مجمّعة فقط، مع إخفاء المجموعات الصغيرة.",
+  },
+  fr: {
+    title: "Connexion · Démo Apex CLMS", org: "Meridian Energy (démo fictive)", headline: "La compétence se construit avec méthode.",
+    lede: "Une formation structurée, des compétences vérifiées et des dossiers de développement transparents pour chaque poste — de la salle de contrôle au conseil d'administration.",
+    p1: "Apprendre", p1d: "Formations, parcours et sessions en direct pour votre poste", p2: "Démontrer", p2d: "Dossiers de compétences fondés sur des preuves", p3: "Progresser", p3d: "Accès au niveau suivant ouvert par votre administrateur",
+    kicker: "Bienvenue sur Apex CLMS", signin: "Se connecter", intro: "Utilisez votre matricule. Il est lié à votre poste : vous voyez le contenu de formation des niveaux ouverts par votre administrateur.",
+    note: "<b>Aperçu interactif.</b> Connectez-vous avec l'un des collaborateurs fictifs ci-dessous pour découvrir Apex CLMS tel qu'il le voit. Cet aperçu est en lecture seule : rien de ce que vous saisissez n'est enregistré.",
+    staff: "Matricule", eg: "ex. D-20101", badge: "Indiqué sur votre badge.", password: "Mot de passe", demo: "Matricules de démonstration (fictifs)",
+    allpw: "Mot de passe commun : <code>Demo#Apex2026!</code>. Choisissez un profil pour remplir le formulaire.",
+    foot: "Toutes les personnes, l'organisation « Meridian Energy » et tous les dossiers sont des données de démonstration fictives.",
+    empty: "Saisissez votre matricule et votre mot de passe.", wrong: "Le matricule ou le mot de passe est incorrect. Dans cet aperçu, utilisez l'un des matricules ci-dessous.",
+    "role-lina": "Opératrice terrain · nouvelle arrivante", "look-lina": "Arrivée depuis trois semaines : parcours d'intégration, première formation obligatoire et aucun historique.",
+    "role-james": "Ingénieur procédés senior · formateur", "look-james": "Plusieurs formations terminées, des certificats, un DPC dans les temps et un plan de développement validé vers le poste de surintendant des opérations.",
+    "role-daniel": "Opérateur senior", "look-daniel": "Formation obligatoire en retard, un certificat expiré en recertification et des réévaluations de compétences à prévoir.",
+    "role-aisha": "Opératrice terrain · en parcours de formation", "look-aisha": "Progresse dans le parcours Développement opérateur terrain, avec un travail pratique et un plan en attente de sa responsable.",
+    "role-priya": "Ingénieure fiabilité", "look-priya": "Des demandes de DPC à chaque étape : brouillon, soumise, en cours d'examen, approuvée et rejetée avec motif.",
+    "role-kwame": "Promu opérateur senior", "look-kwame": "Les RH ont enregistré une promotion, mais le contenu opérateur senior reste fermé jusqu'à ce qu'un administrateur l'ouvre.",
+    "role-omar": "Surintendant des opérations · responsable hiérarchique", "look-omar": "Tableau de bord d'équipe, formations en retard, validation des plans, matrice des écarts de compétences et correction en tant que formateur.",
+    "role-helen": "Administratrice formation", "look-helen": "Création de formations, webinaires et présences, revue du DPC, utilisateurs, rôles, rapports, journal d'audit et configuration.",
+    "role-catherine": "Directrice des RH · direction", "look-catherine": "Analyses de l'organisation uniquement agrégées, les petits groupes étant masqués.",
+  },
+};
+
 /** The demo's front door mirrors the app's sign-in page: Staff ID + password, over the plant photography. */
 function indexPage() {
   const ids = Object.fromEntries(PERSONAS.map((p) => [p.staffId, p.key]));
   const rows = PERSONAS.map((p) => `
-        <li><button type="button" data-id="${p.staffId}"><span class="id">${p.staffId}</span><span><b>${p.name}</b> · ${p.role}<small>${p.look}</small></span></button></li>`).join("");
+        <li><button type="button" data-id="${p.staffId}"><span class="id">${p.staffId}</span><span><b>${p.name}</b> · <span data-i18n="role-${p.key}">${p.role}</span><small data-i18n="look-${p.key}">${p.look}</small></span></button></li>`).join("");
   return `<!doctype html>
 <html lang="en-GB">
 <head>
@@ -215,7 +300,7 @@ function indexPage() {
 <title>Sign in · Apex CLMS demo</title>
 <meta name="description" content="Read-only demonstration of Apex CLMS, a competency and learning management system, with fictional data.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
 :root{--ink:#181a1f;--muted:#62676f;--faint:#8c919a;--lime:#cfee5c;--canvas:#f3f3ee;--surface:#fff;--line:#d8d8cf;--crit:#c43030}
 *{box-sizing:border-box}
@@ -251,6 +336,11 @@ h1{margin:0;font-weight:800;font-size:44px;line-height:1.05;letter-spacing:-.03e
 @media(min-width:1024px){.mhero{display:none}}
 .grab{width:48px;height:6px;border-radius:99px;background:var(--line);margin:0 auto 24px}
 @media(min-width:1024px){.grab{display:none}}
+.langs{display:flex;gap:4px;justify-content:flex-end;margin:0 0 20px}
+.langs a{border-radius:99px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;background:var(--canvas)}
+.langs a[aria-current]{background:var(--lime);color:var(--ink)}
+[dir=rtl] *{letter-spacing:0!important}
+[dir=rtl] body{font-family:"IBM Plex Sans Arabic","Plus Jakarta Sans",system-ui,sans-serif}
 .kicker{margin:0;color:#5c700e;font-weight:600;font-size:13px}
 h2{margin:4px 0 0;font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1.15}
 .intro{color:var(--muted);margin:8px 0 0}
@@ -285,8 +375,8 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
       <div class="photo" style="background-image:url(login/plant-blue.jpg);background-position:center 40%"></div>
       <div class="shade"></div>
     </div>
-    <div class="top" style="position:relative"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small>Meridian Energy (fictional demo)</small></span></div></div>
-    <p class="headline">Competence is built deliberately.</p>
+    <div class="top" style="position:relative"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small data-i18n="org">Meridian Energy (fictional demo)</small></span></div></div>
+    <p class="headline" data-i18n="headline">Competence is built deliberately.</p>
   </section>
   <aside class="hero" aria-label="Apex CLMS — industrial plant">
     <div class="bg" aria-hidden="true">
@@ -295,50 +385,66 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
       <div class="photo" style="background-image:url(login/plant-blue.jpg);background-position:center 40%"></div>
       <div class="shade"></div>
     </div>
-    <div class="top"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small>Meridian Energy (fictional demo)</small></span></div></div>
+    <div class="top"><div class="brand"><span class="mono">A</span><span>Apex CLMS<small data-i18n="org">Meridian Energy (fictional demo)</small></span></div></div>
     <div class="bottom">
-      <h1>Competence is built deliberately.</h1>
-      <p class="lede">Structured learning, verified competence and transparent development records for every role — from the control room to the boardroom.</p>
-      <div class="pillars"><div><b>Learn</b>Courses, paths and live sessions for your job title</div><div><b>Demonstrate</b>Evidence-based competency records</div><div><b>Progress</b>Next-level access opened by your administrator</div></div>
+      <h1 data-i18n="headline">Competence is built deliberately.</h1>
+      <p class="lede" data-i18n="lede">Structured learning, verified competence and transparent development records for every role — from the control room to the boardroom.</p>
+      <div class="pillars"><div><b data-i18n="p1">Learn</b><span data-i18n="p1d">Courses, paths and live sessions for your job title</span></div><div><b data-i18n="p2">Demonstrate</b><span data-i18n="p2d">Evidence-based competency records</span></div><div><b data-i18n="p3">Progress</b><span data-i18n="p3d">Next-level access opened by your administrator</span></div></div>
     </div>
   </aside>
   <main class="panel">
     <div class="form">
       <div class="grab" aria-hidden="true"></div>
-      <p class="kicker">Welcome to Apex CLMS</p>
-      <h2>Sign in</h2>
-      <p class="intro">Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.</p>
-      <p class="note"><b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.</p>
+      <nav class="langs" aria-label="Language"><a href="?lang=en" data-lang="en" lang="en">English</a><a href="?lang=ar" data-lang="ar" lang="ar">العربية</a><a href="?lang=fr" data-lang="fr" lang="fr">Français</a></nav>
+      <p class="kicker" data-i18n="kicker">Welcome to Apex CLMS</p>
+      <h2 data-i18n="signin">Sign in</h2>
+      <p class="intro" data-i18n="intro">Use your staff ID. It links to your job title, so you see the learning content for the levels your administrator has opened.</p>
+      <p class="note" data-i18n="note"><b>Interactive preview.</b> Sign in as any of the fictional staff below to explore Apex CLMS as they see it. This preview is read-only, so nothing you enter is saved.</p>
       <form id="f" novalidate>
-        <label for="sid">Staff ID</label>
-        <input id="sid" autocomplete="off" spellcheck="false" placeholder="e.g. D-20101" required aria-describedby="sid-hint">
-        <p id="sid-hint" class="hint">Printed on your staff badge.</p>
-        <label for="pw">Password</label>
+        <label for="sid" data-i18n="staff">Staff ID</label>
+        <input id="sid" autocomplete="off" spellcheck="false" placeholder="e.g. D-20101" data-i18n-ph="eg" required aria-describedby="sid-hint">
+        <p id="sid-hint" class="hint" data-i18n="badge">Printed on your staff badge.</p>
+        <label for="pw" data-i18n="password">Password</label>
         <input id="pw" type="password" autocomplete="off" required>
         <p id="err" class="err" role="alert" hidden></p>
-        <button class="submit" type="submit">Sign in</button>
+        <button class="submit" type="submit" data-i18n="signin">Sign in</button>
       </form>
       <details>
-        <summary>Demonstration staff IDs (fictional)</summary>
-        <p class="hint">All use the password <code>${PASSWORD}</code>. Choose one to fill the form.</p>
+        <summary data-i18n="demo">Demonstration staff IDs (fictional)</summary>
+        <p class="hint" data-i18n="allpw">All use the password <code>${PASSWORD}</code>. Choose one to fill the form.</p>
         <ul>${rows}
         </ul>
       </details>
-      <p class="foot">All people, the organisation “Meridian Energy” and every record are fictional demonstration data. Snapshot generated ${new Date().toISOString().slice(0, 10)}.</p>
+      <p class="foot"><span data-i18n="foot">All people, the organisation “Meridian Energy” and every record are fictional demonstration data.</span> <span dir="ltr">${new Date().toISOString().slice(0, 10)}</span></p>
     </div>
   </main>
 </div>
 <script>
 (function(){
   var ids=${JSON.stringify(ids)}, pw=${JSON.stringify(PASSWORD)};
+  var I=${JSON.stringify(INDEX_I18N)};
+  var q=new URLSearchParams(location.search).get('lang'),saved=null;
+  try{saved=localStorage.getItem('apex_lang');}catch(e){}
+  var nav=(navigator.language||'en').slice(0,2);
+  var lang=I[q]?q:I[saved]?saved:I[nav]?nav:'en';
+  function apply(l){
+    lang=l;document.documentElement.lang=l;document.documentElement.dir=l==='ar'?'rtl':'ltr';
+    try{localStorage.setItem('apex_lang',l);}catch(e){}
+    document.querySelectorAll('[data-i18n]').forEach(function(n){var k=n.getAttribute('data-i18n');if(I[l][k]!=null)n.innerHTML=I[l][k];});
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(n){n.placeholder=I[l][n.getAttribute('data-i18n-ph')];});
+    document.querySelectorAll('.langs a').forEach(function(a){if(a.getAttribute('data-lang')===l)a.setAttribute('aria-current','true');else a.removeAttribute('aria-current');});
+    document.title=I[l].title;
+  }
+  document.querySelectorAll('.langs a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();apply(a.getAttribute('data-lang'));history.replaceState(null,'','?lang='+lang);});});
+  apply(lang);
   var f=document.getElementById('f'),sid=document.getElementById('sid'),p=document.getElementById('pw'),err=document.getElementById('err');
   document.querySelectorAll('details button[data-id]').forEach(function(b){b.addEventListener('click',function(){sid.value=b.getAttribute('data-id');p.value=pw;p.focus();});});
   f.addEventListener('submit',function(e){
     e.preventDefault();
     var id=sid.value.trim().toUpperCase().replace(/\\s+/g,'');
-    if(!id||!p.value){err.textContent='Enter your staff ID and password.';err.hidden=false;return;}
-    if(!ids[id]||p.value!==pw){err.textContent='The staff ID or password is incorrect. In this demo, use one of the staff IDs listed below.';err.hidden=false;return;}
-    location.href='p/'+ids[id]+'/dashboard.html';
+    if(!id||!p.value){err.textContent=I[lang].empty;err.hidden=false;return;}
+    if(!ids[id]||p.value!==pw){err.textContent=I[lang].wrong;err.hidden=false;return;}
+    location.href='p/'+lang+'/'+ids[id]+'/dashboard.html';
   });
 })();
 </script>
@@ -346,28 +452,30 @@ details small{display:block;color:var(--muted);font-size:12px;line-height:1.45;m
 </html>`;
 }
 
-const notInDemo = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Not in the demo</title>
-<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f3ee;color:#181a1f;font:16px/1.6 system-ui,sans-serif;padding:24px}main{max-width:52ch;background:#fff;border-radius:28px;padding:32px}h1{font:800 28px system-ui,sans-serif;letter-spacing:-.02em;margin:0 0 8px}a{color:#181a1f}</style></head>
-<body><main><h1>Not included in the static demo</h1><p>This page needs the live application — for example a filtered search, a form result or a record the selected persona cannot see. The static demo contains every page each persona can reach by navigation.</p><p><a href="javascript:history.back()">Go back</a> · <a href="index.html">Sign in as someone else</a></p></main></body></html>`;
+const notInDemo = (lang) => `<!doctype html><html lang="${lang}" dir="${lang === "ar" ? "rtl" : "ltr"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${T[lang].nidTitle}</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f3ee;color:#181a1f;font:16px/1.7 system-ui,sans-serif;padding:24px}main{max-width:52ch;background:#fff;border-radius:28px;padding:32px}h1{font:800 28px system-ui,sans-serif;margin:0 0 8px}a{color:#181a1f}</style></head>
+<body><main><h1>${T[lang].nidTitle}</h1><p>${T[lang].nidBody}</p><p><a href="javascript:history.back()">${T[lang].back}</a> · <a href="index.html?lang=${lang}">${T[lang].switch}</a></p></main></body></html>`;
 
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined });
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
 // Personas are crawled concurrently in separate browser contexts.
-await Promise.all(
-  PERSONAS.map(async (p) => {
-    const { pages, files } = await crawlPersona(browser, p);
-    const slugs = new Map([...pages.keys()].map((u) => [u, slugOf(u)]));
-    await mkdir(path.join(OUT, "p", p.key), { recursive: true });
-    for (const [u, html] of pages) await writeFile(path.join(OUT, "p", p.key, `${slugs.get(u)}.html`), rewrite(html, p, slugs, files));
-  }),
-);
+for (const lang of LANGS) {
+  await Promise.all(
+    PERSONAS.map(async (p) => {
+      const { pages, files } = await crawlPersona(browser, p, lang);
+      const slugs = new Map([...pages.keys()].map((u) => [u, slugOf(u)]));
+      await mkdir(path.join(OUT, "p", lang, p.key), { recursive: true });
+      for (const [u, html] of pages) await writeFile(path.join(OUT, "p", lang, p.key, `${slugs.get(u)}.html`), rewrite(html, p, lang, slugs, files));
+    }),
+  );
+}
 await browser.close();
 await fetchAssets();
 await writeFile(path.join(OUT, "index.html"), indexPage());
 await mkdir(path.join(OUT, "login"), { recursive: true });
 for (const f of ["plant-flare.jpg", "plant-daylight.jpg", "plant-blue.jpg"]) await copyFile(path.resolve("public/login", f), path.join(OUT, "login", f));
-await writeFile(path.join(OUT, "not-in-demo.html"), notInDemo.replace('href="index.html"', 'href="index.html"'));
-await writeFile(path.join(OUT, "404.html"), notInDemo);
+for (const lang of LANGS) await writeFile(path.join(OUT, `not-in-demo-${lang}.html`), notInDemo(lang));
+await writeFile(path.join(OUT, "404.html"), notInDemo("en"));
 await writeFile(path.join(OUT, ".nojekyll"), "");
 console.log(`Static demo written to ${OUT}`);

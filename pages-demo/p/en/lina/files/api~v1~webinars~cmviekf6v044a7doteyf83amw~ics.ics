@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apex CLMS//Webinars//EN
+BEGIN:VEVENT
+UID:cmviekf6v044a7doteyf83amw@apex-learning
+DTSTAMP:20261021T174804Z
+DTSTART:20261025T174514Z
+DTEND:20261025T184514Z
+SUMMARY:Learning from Major Process Safety Incidents
+DESCRIPTION:A structured review of publicly reported industry incidents and the barrier failures behind them\, related to our own operations.
+URL:http://localhost:3000/webinars/learning-from-major-process-safety-incidents
+END:VEVENT
+END:VCALENDAR

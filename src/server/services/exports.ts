@@ -1,3 +1,4 @@
+import { safeStandardFont } from "../pdf-text";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { prisma } from "../db";
 import { forbidden, invalid } from "../errors";
@@ -89,9 +90,9 @@ export async function cpdStatementPdf(actor: Actor, periodId?: string) {
   const ws = await cpdWorkspace(actor.id, periodId || undefined);
   const [{ branding }, user] = await Promise.all([loadSettingsUncached(), prisma.user.findUniqueOrThrow({ where: { id: actor.id }, include: { profile: { include: { jobRole: true, department: true } } } })]);
   const doc = await PDFDocument.create();
-  const sans = await doc.embedFont(StandardFonts.Helvetica);
-  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const serif = await doc.embedFont(StandardFonts.TimesRomanBold);
+  const sans = safeStandardFont(await doc.embedFont(StandardFonts.Helvetica));
+  const bold = safeStandardFont(await doc.embedFont(StandardFonts.HelveticaBold));
+  const serif = safeStandardFont(await doc.embedFont(StandardFonts.TimesRomanBold));
   let page = doc.addPage([595, 842]);
   const navy = rgb(0.086, 0.149, 0.267);
   const grey = rgb(0.35, 0.38, 0.42);

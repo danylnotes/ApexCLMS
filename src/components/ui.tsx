@@ -2,6 +2,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { tr } from "@/i18n/active";
 
 /* ───────── Typography & structure ───────── */
 
@@ -38,11 +39,11 @@ export function PageHeader({
 
 export function Breadcrumbs({ items }: { items: { label: string; href?: string }[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 no-print">
+    <nav aria-label={tr("Breadcrumb")} className="mb-3 no-print">
       <ol className="flex flex-wrap items-center gap-1 type-meta">
         {items.map((c, i) => (
           <li key={i} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-ink-faint" aria-hidden />}
+            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-ink-faint rtl:-scale-x-100" aria-hidden />}
             {c.href ? (
               <Link href={c.href} className="text-ink-muted no-underline hover:text-navy hover:underline">
                 {c.label}
@@ -181,7 +182,7 @@ export function Progress({ value, label, tone = "info", size = "md", showValue =
       <div role="progressbar" aria-label={label} aria-valuenow={v} aria-valuemin={0} aria-valuemax={100} className={clsx("relative w-full overflow-hidden rounded-full bg-canvas", size === "sm" ? "h-1.5" : "h-2")}>
         <div className={clsx("h-full rounded-full transition-[width] duration-500", bar[tone])} style={{ width: `${v}%` }} />
       </div>
-      {showValue && <span className="w-9 shrink-0 text-right font-sans text-[0.8125rem] tabular-nums text-ink-muted">{v}%</span>}
+      {showValue && <span className="w-9 shrink-0 text-end font-sans text-[0.8125rem] tabular-nums text-ink-muted">{v}%</span>}
     </div>
   );
 }
@@ -196,12 +197,12 @@ export function Metric({ label, value, context, definition, tone }: { label: str
       </dt>
       <dd className="mt-1.5">
         <span className="type-figure">{value}</span>
-        {context && <span className="ml-1.5 type-meta">{context}</span>}
+        {context && <span className="ms-1.5 type-meta">{context}</span>}
       </dd>
       {definition && (
         <details className="group mt-1">
           <summary className="cursor-pointer list-none font-sans text-[0.75rem] text-ink-faint hover:text-navy-700 [&::-webkit-details-marker]:hidden">
-            <span className="underline decoration-dotted underline-offset-2">How is this calculated?</span>
+            <span className="underline decoration-dotted underline-offset-2">{tr("How is this calculated?")}</span>
           </summary>
           <p className="mt-1 text-[0.8125rem] leading-snug text-ink-muted">{definition}</p>
         </details>
@@ -218,7 +219,7 @@ export function MetricRow({ children, cols = 4 }: { children: ReactNode; cols?: 
 export function Table({ children, caption, className }: { children: ReactNode; caption?: string; className?: string }) {
   return (
     <div className={clsx("-mx-6 overflow-x-auto", className)}>
-      <table className="rtable w-full min-w-[560px] border-collapse text-left font-sans text-[0.875rem]">
+      <table className="rtable w-full min-w-[560px] border-collapse text-start font-sans text-[0.875rem]">
         {caption && <caption className="sr-only">{caption}</caption>}
         {children}
       </table>
@@ -228,7 +229,7 @@ export function Table({ children, caption, className }: { children: ReactNode; c
 
 export function Th({ children, className, align = "left" }: { children?: ReactNode; className?: string; align?: "left" | "right" | "center" }) {
   return (
-    <th scope="col" className={clsx("border-b border-line px-6 py-2.5 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-faint first:pl-6", align === "right" && "text-right", align === "center" && "text-center", className)}>
+    <th scope="col" className={clsx("border-b border-line px-6 py-2.5 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-faint first:ps-6", align === "right" && "text-end", align === "center" && "text-center", className)}>
       {children}
     </th>
   );
@@ -236,7 +237,7 @@ export function Th({ children, className, align = "left" }: { children?: ReactNo
 
 export function Td({ children, className, align = "left", colSpan }: { children?: ReactNode; className?: string; align?: "left" | "right" | "center"; colSpan?: number }) {
   return (
-    <td colSpan={colSpan} className={clsx("border-b border-line px-6 py-3 align-top text-ink", align === "right" && "text-right tabular-nums", align === "center" && "text-center", className)}>
+    <td colSpan={colSpan} className={clsx("border-b border-line px-6 py-3 align-top text-ink", align === "right" && "text-end tabular-nums", align === "center" && "text-center", className)}>
       {children}
     </td>
   );
@@ -267,7 +268,7 @@ export function KeyValue({ items, cols = 2 }: { items: [string, ReactNode][]; co
 
 export function TabNav({ tabs, current }: { tabs: { key: string; label: string; href: string; count?: number }[]; current: string }) {
   return (
-    <nav aria-label="Sections" className="mb-6 overflow-x-auto">
+    <nav aria-label={tr("Sections")} className="mb-6 overflow-x-auto">
       <ul className="inline-flex min-w-max gap-1 rounded-full bg-surface p-1 shadow-panel">
         {tabs.map((t) => {
           const active = t.key === current;
@@ -292,22 +293,22 @@ export function TabNav({ tabs, current }: { tabs: { key: string; label: string; 
 export function Pagination({ page, pages, hrefFor }: { page: number; pages: number; hrefFor: (p: number) => string }) {
   if (pages <= 1) return null;
   return (
-    <nav aria-label="Pagination" className="mt-6 flex items-center justify-between font-sans text-sm">
+    <nav aria-label={tr("Pagination")} className="mt-6 flex items-center justify-between font-sans text-sm">
       <span className="text-ink-muted">
-        Page {page} of {pages}
+        {tr("Page {page} of {pages}", { page, pages })}
       </span>
       <div className="flex gap-2">
-        {page > 1 ? <LinkButton href={hrefFor(page - 1)} variant="secondary" size="sm">Previous</LinkButton> : <span className={buttonClass("secondary", "sm", "pointer-events-none opacity-40")} aria-disabled>Previous</span>}
-        {page < pages ? <LinkButton href={hrefFor(page + 1)} variant="secondary" size="sm">Next</LinkButton> : <span className={buttonClass("secondary", "sm", "pointer-events-none opacity-40")} aria-disabled>Next</span>}
+        {page > 1 ? <LinkButton href={hrefFor(page - 1)} variant="secondary" size="sm">{tr("Previous")}</LinkButton> : <span className={buttonClass("secondary", "sm", "pointer-events-none opacity-40")} aria-disabled>{tr("Previous")}</span>}
+        {page < pages ? <LinkButton href={hrefFor(page + 1)} variant="secondary" size="sm">{tr("Next")}</LinkButton> : <span className={buttonClass("secondary", "sm", "pointer-events-none opacity-40")} aria-disabled>{tr("Next")}</span>}
       </div>
     </nav>
   );
 }
 
 export function Notice({ tone = "info", title, children }: { tone?: Tone; title?: string; children: ReactNode }) {
-  const bg: Record<Tone, string> = { ok: "bg-ok-50 border-l-ok", warn: "bg-warn-50 border-l-warn", crit: "bg-crit-50 border-l-crit", info: "bg-info-50 border-l-info", idle: "bg-idle-50 border-l-idle", copper: "bg-copper-50 border-l-copper" };
+  const bg: Record<Tone, string> = { ok: "bg-ok-50 border-s-ok", warn: "bg-warn-50 border-s-warn", crit: "bg-crit-50 border-s-crit", info: "bg-info-50 border-s-info", idle: "bg-idle-50 border-s-idle", copper: "bg-copper-50 border-s-copper" };
   return (
-    <div role={tone === "crit" ? "alert" : "note"} className={clsx("rounded-2xl border-l-4 px-4 py-3 text-[0.875rem]", bg[tone])}>
+    <div role={tone === "crit" ? "alert" : "note"} className={clsx("rounded-2xl border-s-4 px-4 py-3 text-[0.875rem]", bg[tone])}>
       {title && <p className="font-sans font-semibold text-ink">{title}</p>}
       <div className={clsx("text-ink-muted", title && "mt-0.5")}>{children}</div>
     </div>

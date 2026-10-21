@@ -16,6 +16,7 @@ import { runScheduledJobs } from "@/server/services/jobs";
 import { assertCan } from "@/server/policy";
 import type { ActionState } from "@/lib/action-state";
 import type { SettingKey } from "@/server/settings";
+import { getI18n } from "@/i18n/server";
 
 type A = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 const num = (fd: FormData, k: string) => (optStr(fd, k) == null ? null : Number(str(fd, k)));
@@ -25,6 +26,7 @@ const all = (fd: FormData, k: string) => fd.getAll(k).map(String).filter(Boolean
 
 export const assignAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const [kind, ref] = str(fd, "item").split(":");
     const r = await assignLearning(actor, {
@@ -39,54 +41,64 @@ export const assignAction: A = async (_, fd) =>
       dueDate: optStr(fd, "dueDate"),
       reason: str(fd, "reason"),
     });
-    return `${r.created} assignment${r.created === 1 ? "" : "s"} created${r.skipped ? `; ${r.skipped} skipped (already assigned)` : ""}${r.noAccess ? `; ${r.noAccess} left out (no access to this job title's content)` : ""}.`;
+    const parts = [t("{count, plural, one {# assignment created} other {# assignments created}}", { count: r.created })];
+    if (r.skipped) parts.push(t("{count} skipped (already assigned)", { count: r.skipped }));
+    if (r.noAccess) parts.push(t("{count} left out (no access to this job title's content)", { count: r.noAccess }));
+    return t("{summary}.", { summary: parts.join(t("; ")) });
   }, ["/manager/assign", "/manager", "/admin"]);
 
 export const cancelAssignmentAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await cancelAssignment(await requireActorOrThrow(), str(fd, "assignmentId"));
-    return "Assignment cancelled.";
+    return t("Assignment cancelled.");
   }, ["/manager/assign", "/manager/team/[userId]"]);
 
 export const enrolmentDecisionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await learning.decideEnrolment(await requireActorOrThrow(), str(fd, "enrollmentId"), str(fd, "decision") === "approve", str(fd, "note"));
-    return "Decision recorded.";
+    return t("Decision recorded.");
   }, ["/manager/assign", "/manager"]);
 
 export const recordCompetencyAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const f = formFile(fd, "file");
     const file = f ? await saveFile(f, "COMPETENCY_EVIDENCE", actor.id) : null;
     await competency.recordAssessment(actor, { userId: str(fd, "userId"), competencyId: str(fd, "competencyId"), level: str(fd, "level"), method: str(fd, "method"), notes: str(fd, "notes"), evidenceDescription: str(fd, "evidenceDescription"), evidenceReference: str(fd, "evidenceReference"), requestId: optStr(fd, "requestId") }, file?.id ?? null);
-    return "Assessment recorded. The previous assessment has been superseded and kept in history.";
+    return t("Assessment recorded. The previous assessment has been superseded and kept in history.");
   }, ["/manager/team/[userId]", "/manager/gaps"]);
 
 export const declineCompetencyRequestAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await competency.declineRequest(await requireActorOrThrow(), str(fd, "requestId"), str(fd, "note"));
-    return "Request closed and the employee notified.";
+    return t("Request closed and the employee notified.");
   }, ["/manager/team/[userId]"]);
 
 /* ───── Teaching ───── */
 
 export const gradeAttemptAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const grades = all(fd, "responseId").map((id) => ({ responseId: id, points: Number(str(fd, `points_${id}`)), feedback: str(fd, `feedback_${id}`) || undefined }));
     await learning.gradeAttempt(actor, { attemptId: str(fd, "attemptId"), grades, feedback: str(fd, "feedback") || undefined });
-    return "Attempt graded and the learner notified.";
+    return t("Attempt graded and the learner notified.");
   }, ["/teaching"]);
 
 export const reviewSubmissionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await learning.reviewSubmission(await requireActorOrThrow(), str(fd, "submissionId"), str(fd, "decision") === "approve", str(fd, "feedback"));
-    return "Review recorded.";
+    return t("Review recorded.");
   }, ["/teaching"]);
 
 export const attendanceAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const entries = all(fd, "registrationId").map((id) => ({
       registrationId: id,
@@ -95,35 +107,41 @@ export const attendanceAction: A = async (_, fd) =>
       verification: str(fd, "verification"),
       notes: optStr(fd, "notes"),
     })).filter((e) => str(fd, `attended_${e.registrationId}`) !== "");
-    if (!entries.length) return "No attendance changes to record.";
+    if (!entries.length) return t("No attendance changes to record.");
     const r = await webinars.recordAttendance(actor, { webinarId: str(fd, "webinarId"), entries });
-    return `Attendance recorded for ${r.updated} participant${r.updated === 1 ? "" : "s"}.`;
+    return t("Attendance recorded for {count, plural, one {# participant} other {# participants}}.", { count: r.updated });
   }, ["/admin/webinars/[id]", "/teaching"]);
 
 export const processCpdAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const r = await webinars.processWebinarCpd(await requireActorOrThrow(), str(fd, "webinarId"));
-    return `CPD processed: ${r.processed} claim${r.processed === 1 ? "" : "s"} raised${r.skipped ? `, ${r.skipped} not eligible (attendance below minimum or policy excludes webinars)` : ""}.`;
+    return r.skipped
+      ? t("CPD processed: {count, plural, one {# claim} other {# claims}} raised, {skipped} not eligible (attendance below minimum or policy excludes webinars).", { count: r.processed, skipped: r.skipped })
+      : t("CPD processed: {count, plural, one {# claim} other {# claims}} raised.", { count: r.processed });
   }, ["/admin/webinars/[id]"]);
 
 /* ───── CPD review ───── */
 
 export const cpdDecisionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await cpd.reviewClaim(await requireActorOrThrow(), { claimId: str(fd, "claimId"), decision: str(fd, "decision"), approvedValue: optStr(fd, "approvedValue"), comment: optStr(fd, "comment") });
-    return "Decision recorded.";
+    return t("Decision recorded.");
   }, ["/admin/cpd", "/cpd/[id]"]);
 
 export const savePolicyAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await misc.savePolicy(await requireActorOrThrow(), optStr(fd, "id"), { name: str(fd, "name"), description: str(fd, "description"), professionalBody: str(fd, "professionalBody"), unit: str(fd, "unit"), targetPerPeriod: num(fd, "targetPerPeriod"), pointsPerHour: num(fd, "pointsPerHour"), maxPerActivity: num(fd, "maxPerActivity"), eligibleTypes: all(fd, "eligibleTypes"), autoApproveVerifiedInternal: bool(fd, "autoApprove"), isActive: !bool(fd, "inactive") });
-    return "CPD policy saved.";
+    return t("CPD policy saved.");
   }, ["/admin/cpd"]);
 
 export const savePeriodAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await misc.savePeriod(await requireActorOrThrow(), str(fd, "name").trim(), new Date(str(fd, "startDate")), new Date(str(fd, "endDate") + "T23:59:59Z"), bool(fd, "isCurrent"));
-    return "Reporting period saved.";
+    return t("Reporting period saved.");
   }, ["/admin/cpd"]);
 
 /* ───── Courses ───── */
@@ -148,12 +166,14 @@ export const createCourseAction: A = async (_, fd) => {
 
 export const updateCourseAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await ac.updateCourseDetails(await requireActorOrThrow(), str(fd, "courseId"), courseDetails(fd));
-    return "Course details saved.";
+    return t("Course details saved.");
   }, ["/admin/courses/[id]"]);
 
 export const courseRulesAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const competencies = all(fd, "competencyIds").map((competencyId) => ({ competencyId, targetLevel: Number(str(fd, `level_${competencyId}`) || 1) }));
     await ac.updateCourseRules(await requireActorOrThrow(), str(fd, "courseId"), {
       requireAllLessons: bool(fd, "requireAllLessons"), requireAssessmentPass: bool(fd, "requireAssessmentPass"), requireAssignmentApproval: bool(fd, "requireAssignmentApproval"),
@@ -162,29 +182,32 @@ export const courseRulesAction: A = async (_, fd) =>
       cpdValue: num(fd, "cpdValue"), cpdUnit: str(fd, "cpdUnit") || "HOURS", cpdAccreditationNote: str(fd, "cpdAccreditationNote"), isMandatory: bool(fd, "isMandatory"),
       enrolmentRule: str(fd, "enrolmentRule"), prerequisiteIds: all(fd, "prerequisiteIds"), instructorIds: all(fd, "instructorIds"), competencies,
     });
-    return "Rules saved.";
+    return t("Rules saved.");
   }, ["/admin/courses/[id]"]);
 
 export const courseStatusAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const to = str(fd, "to") as "DRAFT" | "IN_REVIEW" | "PUBLISHED" | "ARCHIVED";
     await ac.setCourseStatus(await requireActorOrThrow(), str(fd, "courseId"), to);
-    return { DRAFT: "Course returned to draft.", IN_REVIEW: "Submitted for review.", PUBLISHED: "Course published.", ARCHIVED: "Course archived." }[to];
+    return { DRAFT: t("Course returned to draft."), IN_REVIEW: t("Submitted for review."), PUBLISHED: t("Course published."), ARCHIVED: t("Course archived.") }[to];
   }, ["/admin/courses/[id]", "/admin/courses", "/catalogue"]);
 
 export const moduleAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     if (op === "add") await ac.addModule(actor, str(fd, "courseId"), str(fd, "title"), str(fd, "description"));
     if (op === "update") await ac.updateModule(actor, str(fd, "moduleId"), str(fd, "title"), str(fd, "description"));
     if (op === "delete") await ac.deleteModule(actor, str(fd, "moduleId"));
     if (op === "up" || op === "down") await ac.moveModule(actor, str(fd, "moduleId"), op === "up" ? -1 : 1);
-    return "Curriculum updated.";
+    return t("Curriculum updated.");
   }, ["/admin/courses/[id]"]);
 
 export const lessonAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     if (op === "delete") await ac.deleteLesson(actor, str(fd, "lessonId"));
@@ -201,24 +224,26 @@ export const lessonAction: A = async (_, fd) =>
         await ac.addLessonResource(actor, lesson.id, file.id, str(fd, "resourceLabel") || f.name.replace(/\.[^.]+$/, ""));
       }
     }
-    return "Lesson saved.";
+    return t("Lesson saved.");
   }, ["/admin/courses/[id]"]);
 
 export const assessmentAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     await ac.saveAssessment(await requireActorOrThrow(), str(fd, "courseId"), optStr(fd, "assessmentId"), { title: str(fd, "title"), description: str(fd, "description"), passingScore: str(fd, "passingScore"), maxAttempts: str(fd, "maxAttempts"), timeLimitMinutes: num(fd, "timeLimitMinutes"), isFinal: bool(fd, "isFinal") });
-    return "Assessment saved.";
+    return t("Assessment saved.");
   }, ["/admin/courses/[id]"]);
 
 export const questionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     if (str(fd, "op") === "delete") {
       await ac.deleteQuestion(actor, str(fd, "questionId"));
-      return "Question removed.";
+      return t("Question removed.");
     }
     await ac.saveQuestion(actor, str(fd, "assessmentId"), optStr(fd, "questionId"), { type: str(fd, "type"), prompt: str(fd, "prompt"), points: str(fd, "points") || "1", options: [0, 1, 2, 3, 4].map((i) => str(fd, `option_${i}`)), correctIndex: optStr(fd, "correctIndex") ?? undefined, correctBoolean: optStr(fd, "correctBoolean") ?? undefined, guidance: str(fd, "guidance") });
-    return "Question saved.";
+    return t("Question saved.");
   }, ["/admin/courses/[id]"]);
 
 /* ───── Learning paths ───── */
@@ -226,6 +251,7 @@ export const questionAction: A = async (_, fd) =>
 export const pathAction: A = async (_, fd) => {
   let id = optStr(fd, "pathId");
   const res = await runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     if (op === "save") {
@@ -238,7 +264,7 @@ export const pathAction: A = async (_, fd) => {
     if (op === "addItem") await misc.addPathItem(actor, id!, str(fd, "courseId"), bool(fd, "isRequired"), optStr(fd, "prerequisiteItemId"));
     if (op === "removeItem") await misc.removePathItem(actor, str(fd, "itemId"));
     if (op === "status") await misc.setPathStatus(actor, id!, str(fd, "to") as "DRAFT" | "PUBLISHED" | "ARCHIVED");
-    return "Learning path updated.";
+    return t("Learning path updated.");
   }, ["/admin/paths", "/admin/paths/[id]", "/learning-paths"]);
   if (res.ok && res.message === "created") redirect(`/admin/paths/${id}`);
   return res;
@@ -259,6 +285,7 @@ function webinarInput(fd: FormData) {
 export const saveWebinarAction: A = async (_, fd) => {
   let id = optStr(fd, "webinarId");
   const res = await runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const input = webinarInput(fd);
     // startsAt is entered as local time in the event time zone; convert to UTC.
@@ -268,7 +295,7 @@ export const saveWebinarAction: A = async (_, fd) => {
       id = w.id;
       return "created";
     }
-    return "Webinar saved.";
+    return t("Webinar saved.");
   }, ["/admin/webinars", "/webinars"]);
   if (res.ok && res.message === "created") redirect(`/admin/webinars/${id}?created=1`);
   return res;
@@ -289,17 +316,19 @@ function zonedToUtc(local: string, timeZone: string) {
 
 export const webinarOpsAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     if (op === "cancel") await misc.cancelWebinar(actor, str(fd, "webinarId"), str(fd, "reason"));
     if (op === "recording") await misc.addRecording(actor, str(fd, "webinarId"), str(fd, "title"), str(fd, "url"), num(fd, "durationMinutes"), optStr(fd, "availableUntil") ? new Date(str(fd, "availableUntil")) : null);
-    return op === "cancel" ? "Webinar cancelled; registrants notified." : "Recording added.";
+    return op === "cancel" ? t("Webinar cancelled; registrants notified.") : t("Recording added.");
   }, ["/admin/webinars/[id]", "/webinars"]);
 
 /* ───── Competency framework ───── */
 
 export const frameworkAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     const fw = str(fd, "frameworkId");
@@ -307,18 +336,19 @@ export const frameworkAction: A = async (_, fd) =>
     if (op === "level") await misc.saveLevel(actor, fw, Number(str(fd, "level")), str(fd, "name"), str(fd, "description"));
     if (op === "domain") await misc.saveDomain(actor, fw, str(fd, "name"));
     if (op === "competency") await misc.saveCompetency(actor, optStr(fd, "competencyId"), { domainId: str(fd, "domainId"), code: str(fd, "code").toUpperCase(), name: str(fd, "name"), description: str(fd, "description"), evidenceRequirements: str(fd, "evidenceRequirements"), assessmentCriteria: str(fd, "assessmentCriteria"), reassessmentMonths: num(fd, "reassessmentMonths"), isActive: !bool(fd, "inactive") });
-    return "Framework updated.";
+    return t("Framework updated.");
   }, ["/admin/competencies"]);
 
 export const roleRequirementsAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const jobRoleId = str(fd, "jobRoleId");
     for (const cid of all(fd, "competencyIds")) {
       const lvl = Number(str(fd, `req_${cid}`) || 0);
       await misc.setRoleRequirement(actor, jobRoleId, cid, lvl || null, bool(fd, `crit_${cid}`));
     }
-    return "Role requirements saved.";
+    return t("Role requirements saved.");
   }, ["/admin/competencies"]);
 
 /* ───── Users & organisation ───── */
@@ -343,47 +373,52 @@ export const createUserAction: A = async (_, fd) => {
 
 export const updateUserAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const r = await org.updateUser(await requireActorOrThrow(), str(fd, "userId"), userInput(fd));
-    return r.jobTitleChanged ? "User updated. The job title changed — review content access below; the new level is not opened until you grant it." : "User updated.";
+    return r.jobTitleChanged ? t("User updated. The job title changed — review content access below; the new level is not opened until you grant it.") : t("User updated.");
   }, ["/admin/users", "/admin/users/[id]"]);
 
 export const contentAccessAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const { grantContentAccess, revokeContentAccess } = await import("@/server/services/access");
     if (str(fd, "op") === "revoke") {
       await revokeContentAccess(actor, str(fd, "grantId"));
-      return "Access removed.";
+      return t("Access removed.");
     }
     await grantContentAccess(actor, str(fd, "userId"), str(fd, "jobRoleId"), str(fd, "reason"));
-    return "Access granted. The staff member has been notified.";
+    return t("Access granted. The staff member has been notified.");
   }, ["/admin/users/[id]", "/catalogue", "/learning-paths"]);
 
 export const userStatusAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     if (op === "invite") {
       const { sendInvitation } = await import("@/server/services/auth");
       await sendInvitation(str(fd, "userId"), actor.id);
-      return "Invitation sent.";
+      return t("Invitation sent.");
     }
     await org.setUserStatus(actor, str(fd, "userId"), op === "activate" ? "ACTIVE" : "DEACTIVATED");
-    return op === "activate" ? "User activated." : "User deactivated and signed out of all sessions.";
+    return op === "activate" ? t("User activated.") : t("User deactivated and signed out of all sessions.");
   }, ["/admin/users", "/admin/users/[id]"]);
 
 export const importUsersAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const f = formFile(fd, "file");
-    if (!f) throw new (await import("@/server/errors")).AppError("VALIDATION", "Choose a CSV file.");
-    if (f.size > 1_000_000) throw new (await import("@/server/errors")).AppError("VALIDATION", "The CSV file must be smaller than 1 MB.");
+    if (!f) throw new (await import("@/server/errors")).AppError("VALIDATION", t("Choose a CSV file."));
+    if (f.size > 1_000_000) throw new (await import("@/server/errors")).AppError("VALIDATION", t("The CSV file must be smaller than 1 MB."));
     const r = await org.importUsersCsv(await requireActorOrThrow(), await f.text(), bool(fd, "invite"));
-    if (r.errors.length) throw new (await import("@/server/errors")).AppError("VALIDATION", `No users were imported. ${r.errors.length} problem(s): ${r.errors.slice(0, 8).map((e) => `line ${e.line}: ${e.message}`).join(" ")}`);
-    return `${r.created} users imported${bool(fd, "invite") ? " and invited" : ""}.`;
+    if (r.errors.length) throw new (await import("@/server/errors")).AppError("VALIDATION", t("No users were imported. {count, plural, one {# problem} other {# problems}}: {details}", { count: r.errors.length, details: r.errors.slice(0, 8).map((e) => t("line {line}: {message}", { line: e.line, message: e.message })).join(" ") }));
+    return bool(fd, "invite") ? t("{count, plural, one {# user imported and invited} other {# users imported and invited}}.", { count: r.created }) : t("{count, plural, one {# user imported} other {# users imported}}.", { count: r.created });
   }, ["/admin/users"]);
 
 export const orgDataAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     const op = str(fd, "op");
     if (op === "department") await misc.saveDepartment(actor, str(fd, "code").toUpperCase(), str(fd, "name"), optStr(fd, "businessUnitId"));
@@ -391,11 +426,12 @@ export const orgDataAction: A = async (_, fd) =>
     if (op === "jobRole") await misc.saveJobRole(actor, str(fd, "code").toUpperCase(), str(fd, "title"), optStr(fd, "departmentId"), str(fd, "careerTrack"), num(fd, "grade"), num(fd, "minYears"));
     if (op === "category") await misc.saveCategory(actor, optStr(fd, "categoryId"), str(fd, "name"), str(fd, "description"), !bool(fd, "inactive"));
     if (op === "credential") await misc.addCredential(actor, str(fd, "userId"), { name: str(fd, "name"), issuer: str(fd, "issuer"), credentialNo: str(fd, "credentialNo"), issuedOn: new Date(str(fd, "issuedOn")), expiresOn: optStr(fd, "expiresOn") ? new Date(str(fd, "expiresOn")) : null, verify: bool(fd, "verify") });
-    return "Saved.";
+    return t("Saved.");
   }, ["/admin/users", "/admin/users/[id]", "/admin/courses"]);
 
 export const rolePermissionAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     assertCan(actor, "role.manage");
     const roleId = str(fd, "roleId");
@@ -406,34 +442,37 @@ export const rolePermissionAction: A = async (_, fd) =>
     for (const key of Object.keys(PERMISSIONS)) {
       if (want.has(key) !== current.has(key)) await org.setRolePermission(actor, roleId, key, want.has(key));
     }
-    return "Role permissions saved.";
+    return t("Role permissions saved.");
   }, ["/admin/roles"]);
 
 export const certificateAdminAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     if (str(fd, "op") === "revoke") {
       await misc.revokeCertificate(actor, str(fd, "certificateId"), str(fd, "reason"));
-      return "Certificate revoked.";
+      return t("Certificate revoked.");
     }
     await misc.saveTemplate(actor, optStr(fd, "templateId"), { name: str(fd, "name"), heading: str(fd, "heading"), bodyText: str(fd, "bodyText"), signatoryName: str(fd, "signatoryName"), signatoryTitle: str(fd, "signatoryTitle"), isDefault: bool(fd, "isDefault") });
-    return "Template saved.";
+    return t("Template saved.");
   }, ["/admin/certificates"]);
 
 export const settingsAction: A = async (_, fd) =>
   runAction(async () => {
+    const { t } = await getI18n();
     const key = str(fd, "section") as SettingKey;
     const value: Record<string, unknown> = {};
     for (const [k, v] of fd.entries()) if (!k.startsWith("$") && k !== "section") value[k] = v;
     if (key === "notifications") value.emailEnabled = bool(fd, "emailEnabled");
     await org.saveSettings(await requireActorOrThrow(), key, value);
-    return "Configuration saved.";
+    return t("Configuration saved.");
   }, ["/admin/settings", "/", "/login"]);
 
 export const runJobsAction: A = async () =>
   runAction(async () => {
+    const { t } = await getI18n();
     const actor = await requireActorOrThrow();
     assertCan(actor, "settings.manage");
     const r = await runScheduledJobs();
-    return `Scheduled processes ran: ${Object.entries(r).map(([k, v]) => `${k} ${v}`).join(", ")}.`;
+    return t("Scheduled processes ran: {summary}.", { summary: Object.entries(r).map(([k, v]) => `${k} ${v}`).join(", ") });
   }, ["/admin"]);

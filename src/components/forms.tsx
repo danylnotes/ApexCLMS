@@ -5,9 +5,11 @@ import { useFormStatus } from "react-dom";
 import clsx from "clsx";
 import { buttonClass } from "./ui";
 import type { ActionState } from "@/lib/action-state";
+import { useI18n } from "@/i18n/client";
 
 export function SubmitButton({ children, variant = "primary", size = "md", pendingLabel, className, name, value, confirm }: { children: ReactNode; variant?: "primary" | "secondary" | "ghost" | "danger" | "accent"; size?: "sm" | "md"; pendingLabel?: string; className?: string; name?: string; value?: string; confirm?: string }) {
   const { pending } = useFormStatus();
+  const { t } = useI18n();
   return (
     <button
       type="submit"
@@ -20,7 +22,7 @@ export function SubmitButton({ children, variant = "primary", size = "md", pendi
         if (confirm && !window.confirm(confirm)) e.preventDefault();
       }}
     >
-      {pending ? pendingLabel ?? "Working…" : children}
+      {pending ? pendingLabel ?? t("Working…") : children}
     </button>
   );
 }
@@ -55,7 +57,7 @@ export function ActionForm({
         </p>
       )}
       {state.fieldErrors && Object.keys(state.fieldErrors).length > 0 && (
-        <ul className="mt-2 list-disc pl-5 font-sans text-[0.8125rem] text-crit">
+        <ul className="mt-2 list-disc ps-5 font-sans text-[0.8125rem] text-crit">
           {Object.entries(state.fieldErrors).map(([k, v]) => (
             <li key={k}>{v?.[0]}</li>
           ))}
